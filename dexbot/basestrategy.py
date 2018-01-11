@@ -6,7 +6,6 @@ from bitshares.price import FilledOrder, Order, UpdateCallOrder
 from bitshares.instance import shared_bitshares_instance
 from .storage import Storage
 from .statemachine import StateMachine
-log = logging.getLogger(__name__)
 
 
 ConfigElement = collections.namedtuple('ConfigElement','key type default description extra')
@@ -46,6 +45,8 @@ class BaseStrategy(Storage, StateMachine, Events):
          * ``basestrategy.market``: The market used by this bot
          * ``basestrategy.orders``: List of open orders of the bot's account in the bot's market
          * ``basestrategy.balance``: List of assets and amounts available in the bot's account
+         * ``basestrategy.log``: a per-bot logger (actually LoggerAdapter) adds bot-specific context: botname & account
+           (Because some UIs might want to display per-bot logs)
 
         Also, Base Strategy inherits :class:`stakemachine.storage.Storage`
         which allows to permanently store data in a sqlite database
@@ -54,6 +55,10 @@ class BaseStrategy(Storage, StateMachine, Events):
         ``basestrategy["key"] = "value"``
 
         .. note:: This applies a ``json.loads(json.dumps(value))``!
+
+    Bots must never attempt to interact with the user, they must assume they are running unattended
+    They can log events. If a problem occurs they can't fix they should set self.disabled = True and throw an exception
+    The framework catches all exceptions thrown from event handlers and logs appropriately.
     """
 
     __events__ = [
@@ -146,6 +151,12 @@ class BaseStrategy(Storage, StateMachine, Events):
         # will be reset to False after reset only
         self.disabled = False
 
+        # a private logger that adds bot identify data to the LogRecord
+        self.log = logging.LoggerAdapter(logging.getLogger('dexbot.per_bot'),{'botname':name,
+                                                                                 'account':self.bot['account'],
+                                                                                 'market':self.bot['market'],
+                                                                                 'is_disabled':(lambda: self.disabled)})
+    
     @property
     def orders(self):
         """ Return the bot's open accounts in the current market
