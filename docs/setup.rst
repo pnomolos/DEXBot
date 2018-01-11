@@ -28,6 +28,7 @@ Installation
 
    pip3 install git+https://github.com/ihaywood3/DEXBot.git [--user]
 
+
 If you install using the ``--user`` flag, the binaries of
 ``dexbot`` and ``uptick`` are located in ``~/.local/bin``.
 Otherwise they should be globally reachable.
@@ -41,12 +42,12 @@ bot's account into a local wallet. This can be done using
 
    uptick addkey
 
-Easy Configuration
-------------------
+Configuration
+-------------
 
 ``dexbot`` can be configured using::
 
-    dexbot configure
+  dexbot configure
 
 This will walk you through the configuration process.
 Read more about this in the :doc:`configuration`.

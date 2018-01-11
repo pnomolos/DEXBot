@@ -31,8 +31,8 @@ class BaseStrategy(Storage, StateMachine, Events):
 
         BaseStrategy inherits:
 
-        * :class:`stakemachine.storage.Storage`
-        * :class:`stakemachine.statemachine.StateMachine`
+        * :class:`dexbot.storage.Storage`
+        * :class:`dexbot.statemachine.StateMachine`
         * ``Events``
 
         Available attributes:
@@ -48,7 +48,7 @@ class BaseStrategy(Storage, StateMachine, Events):
          * ``basestrategy.log``: a per-bot logger (actually LoggerAdapter) adds bot-specific context: botname & account
            (Because some UIs might want to display per-bot logs)
 
-        Also, Base Strategy inherits :class:`stakemachine.storage.Storage`
+        Also, Base Strategy inherits :class:`dexbot.storage.Storage`
         which allows to permanently store data in a sqlite database
         using:
 
