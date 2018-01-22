@@ -1,7 +1,6 @@
 import os
-import json
 import sqlalchemy
-from sqlalchemy import create_engine, Table, Column, String, Integer, MetaData
+from sqlalchemy import create_engine, Table, Column, String, Integer, MetaData, PickleType
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from appdirs import user_data_dir
@@ -31,7 +30,7 @@ class Config(Base):
     id = Column(Integer, primary_key=True)
     category = Column(String)
     key = Column(String)
-    value = Column(String)
+    value = Column(PickleType)
 
     def __init__(self, c, k, v):
         self.category = c
@@ -49,7 +48,6 @@ class Storage(dict):
         self.category = category
 
     def __setitem__(self, key, value):
-        value = json.dumps(value)
         e = session.query(Config).filter_by(
             category=self.category,
             key=key
@@ -69,7 +67,7 @@ class Storage(dict):
         if not e:
             return None
         else:
-            return json.loads(e.value)
+            return e.value
 
     def __delitem__(self, key):
         e = session.query(Config).filter_by(
@@ -91,8 +89,7 @@ class Storage(dict):
             category=self.category
         ).all()
         return [(e.key, e.value) for e in es]
-
-
+    
 # Derive sqlite file directory
 data_dir = user_data_dir(appname, appauthor)
 sqlDataBaseFile = os.path.join(data_dir, storageDatabase)
