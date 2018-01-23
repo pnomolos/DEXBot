@@ -1,6 +1,6 @@
 import traceback
 import importlib
-import time
+import time, sys
 import logging
 from bitshares.notify import Notify
 from bitshares.instance import shared_bitshares_instance
@@ -61,6 +61,9 @@ class BotInfrastructure():
             except:
                 log_bots.exception("Bot initialisation",extra={'botname':botname,'account':bot['account'],'market':'unknown','is_disabled':(lambda: True)})
 
+        if len(markets) == 0:
+            log.critical("No bots to launch, exiting")
+            sys.exit(70) # 70= "Software error" in /usr/include/sysexts.h
         # Create notification instance
         # Technically, this will multiplex markets and accounts and
         # we need to demultiplex the events after we have received them
@@ -77,7 +80,7 @@ class BotInfrastructure():
     # Events
     def on_block(self, data):
         for botname, bot in self.config["bots"].items():
-            if self.bots[botname].disabled:
+            if (not botname in self.bots) or self.bots[botname].disabled:
                 continue
             try:
                 self.bots[botname].ontick(data)
