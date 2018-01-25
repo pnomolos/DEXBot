@@ -45,6 +45,7 @@ setup(
         "pyqt5",
 	"pythondialog",
 	"sdnotify"
+        "ruamel.yaml"
     ],
     include_package_data=True,
 )

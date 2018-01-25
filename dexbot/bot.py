@@ -1,7 +1,13 @@
-import traceback
 import importlib
+<<<<<<< HEAD
 import time, sys
+=======
+import sys
+>>>>>>> ec77f53bda7c6834582c7df40f67a1f146e3b4e5
 import logging
+import os.path
+from multiprocessing import Process
+
 from bitshares.notify import Notify
 from bitshares.instance import shared_bitshares_instance
 
@@ -20,19 +26,26 @@ log_bots = logging.getLogger('dexbot.per_bot')
 # GUIs can add a handler to this logger to get a stream of events re the running bots.
 
 
-class BotInfrastructure():
+class BotInfrastructure(Process):
 
     bots = dict()
 
     def __init__(
         self,
         config,
-        bitshares_instance=None
+        bitshares_instance=None,
+        gui_data=None
     ):
+        super().__init__()
         # BitShares instance
         self.bitshares = bitshares_instance or shared_bitshares_instance()
 
         self.config = config
+
+        # set the module search path
+        user_bot_path = os.path.expanduser("~/bots")
+        if os.path.exists(user_bot_path):
+            sys.path.append(user_bot_path)
 
         # Load all accounts and markets in use to subscribe to them
         accounts = set()
@@ -49,12 +62,13 @@ class BotInfrastructure():
             try:
                 klass = getattr(
                     importlib.import_module(bot["module"]),
-                    bot["bot"]
+                    'Strategy'
                 )
                 self.bots[botname] = klass(
                     config=config,
                     name=botname,
-                    bitshares_instance=self.bitshares
+                    bitshares_instance=self.bitshares,
+                    gui_data=gui_data
                 )
                 markets.add(bot['market'])
                 accounts.add(bot['account'])
@@ -75,7 +89,6 @@ class BotInfrastructure():
             on_block=self.on_block,
             bitshares_instance=self.bitshares
         )
-
 
     # Events
     def on_block(self, data):
@@ -117,4 +130,3 @@ class BotInfrastructure():
 
     def run(self):
         self.notify.listen()
-
