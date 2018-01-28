@@ -1,9 +1,5 @@
 import importlib
-<<<<<<< HEAD
 import time, sys
-=======
-import sys
->>>>>>> ec77f53bda7c6834582c7df40f67a1f146e3b4e5
 import logging
 import os.path
 from multiprocessing import Process
