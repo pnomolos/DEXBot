@@ -7,7 +7,7 @@ from dexbot.basestrategy import BaseStrategy, ConfigElement
 
 import pdb
         
-class FollowOrders(BaseStrategy):
+class Strategy(BaseStrategy):
 
     @classmethod
     def configure(cls):
@@ -107,8 +107,11 @@ class FollowOrders(BaseStrategy):
 
     def onmarket(self, data):
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
-            self.log.info("FilledOrder on our account")
-            self.log.info("%r" % dict(data))
+            self.info("FilledOrder %r" % dict(data))
+            if data['quote']['asset'] == self.market['quote']:
+                self.info("I think its a SELL to us of %r" % data['quote'])
+            if data['base']['asset'] == self.market['quote']:
+                self.info("I think its a BUY from us of %r" % data['base'])
             self.reassess()
 
     def reassess(self):
