@@ -14,10 +14,11 @@ class Strategy(BaseStrategy):
         return BaseStrategy.configure()+[
             ConfigElement("spread","float",5,"Percentage difference between buy and sell",(0,1000)),
             ConfigElement("wall","float",0.0,"the default amount to buy/sell, in quote",(0.0,None)),
-            ConfigElement("max","float",100.0,"bot will not trade if price above this",(0,0,None)),
-            ConfigElement("min","float",100.0,"bot will not trade if price below this",(0,0,None)),
-            ConfigElement("start","float",100.0,"Starting price, as percentage of settlement price",(0,0,None)),
-            ConfigElement("reset","bool",False,"bot will alwys reset orders on start",(0,0,None)),
+            ConfigElement("max","float",100.0,"bot will not trade if price above this",(0.0,None)),
+            ConfigElement("min","float",100.0,"bot will not trade if price below this",(0.0,None)),
+            ConfigElement("start","float",100.0,"Starting price, as percentage of settlement price",(0.0,None)),
+            ConfigElement("reset","bool",False,"bot will alwys reset orders on start",(0.0,None)),
+            ConfigElement("staggers","int",1,"Number of additional staggered orders to place",(1,100))
         ]
 
 
@@ -44,13 +45,13 @@ class Strategy(BaseStrategy):
         """ Update the orders
         """
 
-        self.log.info("Replacing orders")
-
-        sell_price = newprice * (100+(self.bot['spread']/2))/100.0
-        buy_price = newprice * (100-(self.bot['spread']/2))/100.0
+        self.log.info("Replacing orders. Baseprice is %f" % newprice)
+        self['price'] = newprice
+        step = (self.bot['spread']/2)/100.0
         
         # Canceling orders
         self.cancelall()
+
         myorders = {}
 
         if newprice < self.bot["min"]:
@@ -62,44 +63,52 @@ class Strategy(BaseStrategy):
             self.log.critical("Price %f is above maxiimum %f" % (newprice,sel.bot["max"]))
             return
         
-        if float(self.balance(self.market["quote"])) < self.bot["wall"]:
+        if float(self.balance(self.market["quote"])) < self.bot["wall"]*self.bot['staggers']:
             self.log.critical("insufficient sell balance: %r (needed %f)" % (self.balance(self.market["quote"]),self.bot["wall"]))
             self.disabled = True # now we get no more events
             return
 
-        if self.balance(self.market["base"]) < buy_price * self.bot["wall"]:
+        if self.balance(self.market["base"]) < newprice * self.bot["wall"] * self.bot['staggers']:
             self.disabled = True
             self.log.critical("insufficient buy balance: %r (need: %f)" % (self.balance(self.market["base"]),self.bot["wall"]*buy_price))
             return
     
         amt = Amount(self.bot["wall"], self.market["quote"])
-        self.log.info("SELL {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
-            amt=repr(amt),
-            price=sell_price,
-            inv_price = 1/sell_price,
-            quote=self.market['quote']['symbol'],
-            base=self.market['base']['symbol']))
         
-        ret = self.market.sell(
+        sell_price = newprice
+        for i in range(0,self.bot['staggers']):
+            sell_price += step
+            self.log.info("SELL {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
+                amt=repr(amt),
+                price=sell_price,
+                inv_price = 1/sell_price,
+                quote=self.market['quote']['symbol'],
+                base=self.market['base']['symbol']))
+            
+            ret = self.market.sell(
                 sell_price,
                 amt,
                 account=self.account,
                 returnOrderId="head"
             )
-        myorders[ret['orderid']] = sell_price
-        self.log.info("BUY {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
-            amt=repr(amt),
-            price = buy_price,
-            inv_price = 1/buy_price,
-            quote=self.market['quote']['symbol'],
-            base=self.market['base']['symbol']))
-        ret = self.market.buy(
+            myorders[ret['orderid']] = sell_price
+
+        buy_price = newprice
+        for i in range(0,self.bot['staggers']):
+            buy_price -= step
+            self.log.info("BUY {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
+                amt=repr(amt),
+                price = buy_price,
+                inv_price = 1/buy_price,
+                quote=self.market['quote']['symbol'],
+                base=self.market['base']['symbol']))
+            ret = self.market.buy(
                 buy_price,
                 amt,
                 account=self.account,
-                    returnOrderId="head",
+                returnOrderId="head",
             )
-        myorders[ret['orderid']] = buy_price
+            myorders[ret['orderid']] = buy_price
 
         self['myorders'] = myorders
         #ret = self.execute() this doesn't seem to work reliably
@@ -107,11 +116,12 @@ class Strategy(BaseStrategy):
 
     def onmarket(self, data):
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
-            self.info("FilledOrder %r" % dict(data))
+            self.log.info("FilledOrder %r" % dict(data))
+            self.log.info("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
-                self.info("I think its a SELL to us of %r" % data['quote'])
+                self.log.info("I think its a SELL to us of %r" % data['quote'])
             if data['base']['asset'] == self.market['quote']:
-                self.info("I think its a BUY from us of %r" % data['base'])
+                self.log.info("I think its a BUY from us of %r" % data['base'])
             self.reassess()
 
     def reassess(self):
@@ -121,17 +131,18 @@ class Strategy(BaseStrategy):
         self.account.refresh()
         still_open = set(i['id'] for i in self.account.openorders)
         if len(still_open) == 0:
-            self.log.info("no open orders, recalculating from startprice")
+            self.log.info("no open orders, recalculating the startprice")
             t = self.market.ticker()
             self.updateorders(float(t['quoteSettlement_price'])*self.bot['start']/100.0)
             return
         missing = set(self['myorders'].keys()) - still_open
-        if len(missing) == 2:
-            self.log.critical("Aaargh! there are open orders but both of ours have gone. Probably because user is doing other trades with bot's account. Suspening bot.")
-            self.disabled = True
-            return
-        if len(missing) == 1:
-            # one surviving order and one missing, use the missing one as new price
+        if missing:
+            found_price = 0.0
+            highest_diff = 0.0
             for i in missing:
-                self.updateorders(self['myorders'][i])
+                diff = fabs(self['price']-self['myorders'][i])
+                if diff > highest_diff:
+                    found_price = self['myorders'][i]
+                    highest_diff = diff
+            self.updateorders(self['myorders'][i])
 
