@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-VERSION = '0.0.6-ih'
+VERSION = '0.0.7-ih'
 
 setup(
     name='dexbot',
