@@ -5,27 +5,15 @@ Trading Bot for the BitShares Decentralized Exchange
 
 **Warning**: This is highly experimental code! Use at your OWN risk!
 
+This version is a fork made by Ian Haywood. It's is based on the
+[DEXBot project](https:/github.com/codaone/DEXBot) 
+by Codaone Oy, in turn based on xeroc's 
+[stakemachine](https://github.com/xeroc/stakemachine),
+
 ## Installation
 
-    git clone https://github.com/codaone/dexbot
-    cd dexbot
-    python3 setup.py install
-    # or
-    python3 setup.py install --user
-
-## Configuration
-
-Configuration happens in `config.yml`
-
-## Requirements
-
-Add your account's private key to the pybitshares wallet using `uptick`
-
-    uptick addkey
-
-## Execution
-
-    dexbot run
+Please see instructions in the 
+[documentation](http://dexbot-ih.readthedocs.io/en/latest/setup.html).
 
 # IMPORTANT NOTE
 

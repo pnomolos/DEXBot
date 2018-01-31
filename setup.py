@@ -2,18 +2,18 @@
 
 from setuptools import setup, find_packages
 
-VERSION = '0.0.6'
+VERSION = '0.0.6-ih'
 
 setup(
     name='dexbot',
     version=VERSION,
     description='Trading bot for the DEX (BitShares)',
     long_description=open('README.md').read(),
-    author='Codaone Oy',
-    author_email='support@codaone.com',
-    maintainer='Codaone Oy',
-    maintainer_email='support@codaone.com',
-    url='http://www.github.com/codaone/dexbot',
+    author='Ian Haywood',
+    author_email='ihaywood3@gmail.com',
+    maintainer='Ian Haywood',
+    maintainer_email='',
+    url='http://www.github.com/ihaywood3/dexbot',
     keywords=['DEX', 'bot', 'trading', 'api', 'blockchain'],
     packages=[
         "dexbot",
