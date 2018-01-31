@@ -6,7 +6,7 @@ Trading Bot for the BitShares Decentralized Exchange
 **Warning**: This is highly experimental code! Use at your OWN risk!
 
 This version is a fork made by Ian Haywood. It's is based on the
-[DEXBot project](https:/github.com/codaone/DEXBot) 
+[DEXBot project](https:/github.com/Codaone/DEXBot) 
 by Codaone Oy, in turn based on xeroc's 
 [stakemachine](https://github.com/xeroc/stakemachine),
 
