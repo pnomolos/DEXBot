@@ -20,7 +20,9 @@ The configuration consists of a series of questions about the bots you wish to c
    before deploying a bot.
 
    a. :doc:`echo` For testing this just logs events on a market, does no trading.
-   b. :doc:`wall` a basic liquidity bot maintaining a "wall" of buy and sell orders around the market price.
+   b. :doc:`follow_orders` My (Ian Haywood) main bot, and extension of stakemachine's `wall`,
+      has been used to provide liquidity on AUD:BTS. 
+      Does function but by no mean perfect, see caveats in the docs.
 
    Technically the questions that follow are determined by the strategy chosen, and each strategy will have its own questions around
    amounts to trade, spreads etc. See the strategy documentations linked above. But two questions are nearly universal among strategies
