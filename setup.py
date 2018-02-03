@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-VERSION = '0.0.7-ih'
+VERSION = '0.0.8-ih'
 
 setup(
     name='dexbot',
@@ -42,10 +42,10 @@ setup(
         "pyyaml",
         "sqlalchemy",
         "appdirs",
-        "pyqt5",
+        #"pyqt5",
 	"pythondialog",
-	"sdnotify",
-        "ruamel.yaml"
+	"sdnotify"
+        #"ruamel.yaml"
     ],
     include_package_data=True,
 )
