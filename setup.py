@@ -44,7 +44,7 @@ setup(
         "appdirs",
         "pyqt5",
 	"pythondialog",
-	"sdnotify"
+	"sdnotify",
         "ruamel.yaml"
     ],
     include_package_data=True,
