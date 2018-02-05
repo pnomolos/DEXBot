@@ -11,9 +11,9 @@ log = logging.getLogger(__name__)
 
 
 # FIXME: currently static list of bot strategies: ? how to enumerate bots available and deploy new bot strategies.
-STRATEGIES={'Echo':('dexbot.strategies.echo','Strategy'),
-            'Follow Orders':('dexbot.strategies.follow_orders','Strategy')}
 
+STRATEGIES=[('Echo','dexbot.strategies.echo'),
+            ("Haywood's Follow Orders",'dexbot.strategies.follow_orders')]
 
 log_bots = logging.getLogger('dexbot.per_bot')
 # NOTE this is the  special logger for per-bot events
