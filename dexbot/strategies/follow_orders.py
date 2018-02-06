@@ -55,11 +55,11 @@ class Strategy(BaseStrategy):
 
         if newprice < self.bot["min"]:
             self.disabled = True
-            self.log.critical("Price %f is below minimum %f" % (newprice,sel.bot["min"]))
+            self.log.critical("Price %f is below minimum %f" % (newprice,self.bot["min"]))
             return
         if newprice > self.bot["max"]:
             self.disabled = True
-            self.log.critical("Price %f is above maxiimum %f" % (newprice,sel.bot["max"]))
+            self.log.critical("Price %f is above maxiimum %f" % (newprice,self.bot["max"]))
             return
         
         if float(self.balance(self.market["quote"])) < self.bot["wall"]*self.bot['staggers']:
