@@ -12,8 +12,8 @@ log = logging.getLogger(__name__)
 
 # FIXME: currently static list of bot strategies: ? how to enumerate bots available and deploy new bot strategies.
 
-STRATEGIES=[('Echo','dexbot.strategies.echo'),
-            ("Haywood's Follow Orders",'dexbot.strategies.follow_orders')]
+STRATEGIES=[('dexbot.strategies.echo',"Echo Test"),
+            ('dexbot.strategies.follow_orders',"Haywood's Follow Orders")]
 
 log_bots = logging.getLogger('dexbot.per_bot')
 # NOTE this is the  special logger for per-bot events
@@ -102,7 +102,6 @@ class BotInfrastructure(Process):
             return
         for botname, bot in self.config["bots"].items():
             if self.bots[botname].disabled:
-                self.bots[botname].log.warning("disabled")
                 continue
             if bot["market"] == data.market:
                 try:
@@ -115,7 +114,7 @@ class BotInfrastructure(Process):
         account = accountupdate.account
         for botname, bot in self.config["bots"].items():
             if self.bots[botname].disabled:
-                self.bots[botname].log.info("The bot %s has been disabled" % botname)
+                self.bots[botname].log.info("bot disabled" % botname)
                 continue
             if bot["account"] == account["name"]:
                 try:
