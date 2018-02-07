@@ -38,7 +38,7 @@ class Strategy(BaseStrategy):
         # Define Callbacks
         self.onMarketUpdate += self.onmarket
         if self.bot.get("reset",False):
-            self.cancelall()
+            self.cancel_all()
         self.reassess()
                                            
     def updateorders(self,newprice):
@@ -50,7 +50,7 @@ class Strategy(BaseStrategy):
         step = (self.bot['spread']/2)/100.0
         
         # Canceling orders
-        self.cancelall()
+        self.cancel_all()
         myorders = {}
 
         if newprice < self.bot["min"]:
