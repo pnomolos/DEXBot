@@ -16,7 +16,7 @@ Plus for the configuration you need the ``dialog`` command.
 
 On Ubuntu/Debian type systems::
 
-   sudo apt-get install dialog python3-pip python3-dev
+   sudo apt-get libssl-dev install dialog python3-pip python3-dev
 
 
 On other distros you need to check the documentation for how to install packages, the names should be very similar.
