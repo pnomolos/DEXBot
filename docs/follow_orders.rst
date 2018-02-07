@@ -55,13 +55,16 @@ Staggers
 --------
 
 Number of additional (or "staggered") orders to place. By default this is "1" (so
-no additional orders). The gap between each order is the same as between the first orders
-and the base price (that is, half the spread).
+no additional orders). 2 or more means multiple sell and buy orders at different prices.
 
-So say the spread is 5% and staggers is "2", then there will be 2
-buy orders: 2.5% and 5% below the base price, and two sells 2.5% and 5% above.
-The order amounts are all the same (see `wall` option)
+Stagger Spread
+--------------
 
+The gap between each staggered order (as a percentage of the base price).
+
+So say the spread is 5%, staggers is "2", and "stagger spread" is 4%, then there will be 2
+buy orders: 2.5% and 6.5% (4% + 2.5%) below the base price, and two sells 2.5% and 6.5% above.
+The order amounts are all the same (see `wall` option).
 
 Bot problems
 ============
