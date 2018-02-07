@@ -12,13 +12,14 @@ class Strategy(BaseStrategy):
     @classmethod
     def configure(cls):
         return BaseStrategy.configure()+[
-            ConfigElement("spread","float",5,"Percentage difference between buy and sell",(0,1000)),
+            ConfigElement("spread","float",5,"Percentage difference between buy and sell",(0,100)),
             ConfigElement("wall","float",0.0,"the default amount to buy/sell, in quote",(0.0,None)),
             ConfigElement("max","float",100.0,"bot will not trade if price above this",(0.0,None)),
             ConfigElement("min","float",100.0,"bot will not trade if price below this",(0.0,None)),
             ConfigElement("start","float",100.0,"Starting price, as percentage of settlement price",(0.0,None)),
             ConfigElement("reset","bool",False,"bot will alwys reset orders on start",(0.0,None)),
-            ConfigElement("staggers","int",1,"Number of additional staggered orders to place",(1,100))
+            ConfigElement("staggers","int",1,"Number of additional staggered orders to place",(1,100)),
+            ConfigElement("staggerspread","float",5,"Percentage difference between staggered orders",(1,100))
         ]
 
 
@@ -47,8 +48,8 @@ class Strategy(BaseStrategy):
 
         self.log.info("Replacing orders. Baseprice is %f" % newprice)
         self['price'] = newprice
-        step = (self.bot['spread']/2)/100.0
-        
+        step1 = (self.bot['spread']/2)/100.0
+        step2 = self.bot['staggerspread']/100.0
         # Canceling orders
         self.cancel_all()
         myorders = {}
@@ -59,7 +60,7 @@ class Strategy(BaseStrategy):
             return
         if newprice > self.bot["max"]:
             self.disabled = True
-            self.log.critical("Price %f is above maxiimum %f" % (newprice,self.bot["max"]))
+            self.log.critical("Price %f is above maximum %f" % (newprice,self.bot["max"]))
             return
         
         if float(self.balance(self.market["quote"])) < self.bot["wall"]*self.bot['staggers']:
@@ -74,27 +75,26 @@ class Strategy(BaseStrategy):
     
         amt = Amount(self.bot["wall"], self.market["quote"])
         
-        sell_price = newprice
+        sell_price = newprice+step1
         for i in range(0,self.bot['staggers']):
-            sell_price += step
             self.log.info("SELL {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
                 amt=repr(amt),
                 price=sell_price,
                 inv_price = 1/sell_price,
                 quote=self.market['quote']['symbol'],
                 base=self.market['base']['symbol']))
-            
             ret = self.market.sell(
                 sell_price,
                 amt,
                 account=self.account,
                 returnOrderId="head"
             )
+            self.log.info("SELL order done")
             myorders[ret['orderid']] = sell_price
-
-        buy_price = newprice
+            sell_price += step2
+            
+        buy_price = newprice-step1
         for i in range(0,self.bot['staggers']):
-            buy_price -= step
             self.log.info("BUY {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
                 amt=repr(amt),
                 price = buy_price,
@@ -107,15 +107,16 @@ class Strategy(BaseStrategy):
                 account=self.account,
                 returnOrderId="head",
             )
+            self.log.info("BUY order done")
             myorders[ret['orderid']] = buy_price
-
+            buy_price -= step2
         self['myorders'] = myorders
         #ret = self.execute() this doesn't seem to work reliably
         #self.safe_dissect(ret,"execute")
 
     def onmarket(self, data):
+        self.log.info("%r %r" % (type(data),dict(data)))
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
-            self.log.info("FilledOrder %r" % dict(data))
             self.log.info("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
                 self.log.info("I think its a SELL to us of %r" % data['quote'])
@@ -143,5 +144,5 @@ class Strategy(BaseStrategy):
                 if diff > highest_diff:
                     found_price = self['myorders'][i]
                     highest_diff = diff
-            self.updateorders(self['myorders'][i])
+            self.updateorders(found_price)
 
