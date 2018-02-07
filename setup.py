@@ -43,8 +43,8 @@ setup(
         "sqlalchemy",
         "appdirs",
         #"pyqt5",
-	"whiptail",
-	"sdnotify"
+	      "whiptail",
+	      "sdnotify"
         #"ruamel.yaml"
     ],
     include_package_data=True,
