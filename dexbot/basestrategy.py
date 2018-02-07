@@ -1,5 +1,6 @@
 import logging, collections
 from events import Events
+from bitshares.asset import Asset
 from bitshares.market import Market
 from bitshares.account import Account
 from bitshares.price import FilledOrder, Order, UpdateCallOrder
@@ -164,6 +165,44 @@ class BaseStrategy(Storage, StateMachine, Events):
         self.account.refresh()
         return [o for o in self.account.openorders if self.bot["market"] == o.market and self.account.openorders]
 
+    def get_order(self, order_id):
+        for order in self.orders:
+            if order['id'] == order_id:
+                return order
+        return False
+
+    def get_updated_order(self, order):
+        if not order:
+            return False
+        for updated_order in self.updated_open_orders:
+            if updated_order['id'] == order['id']:
+                return updated_order
+        return False
+
+    @property
+    def updated_open_orders(self):
+        """
+        Returns updated open Orders.
+        account.openorders doesn't return updated values for the order so we calculate the values manually
+        """
+        self.account.refresh()
+        self.account.ensure_full()
+
+        limit_orders = self.account['limit_orders'][:]
+        for o in limit_orders:
+            base_amount = o['for_sale']
+            price = o['sell_price']['base']['amount'] / o['sell_price']['quote']['amount']
+            quote_amount = base_amount / price
+            o['sell_price']['base']['amount'] = base_amount
+            o['sell_price']['quote']['amount'] = quote_amount
+
+        orders = [
+            Order(o, bitshares_instance=self.bitshares)
+            for o in limit_orders
+        ]
+
+        return [o for o in orders if self.bot["market"] == o.market]
+
     @property
     def market(self):
         """ Return the market object as :class:`bitshares.market.Market`
@@ -182,6 +221,22 @@ class BaseStrategy(Storage, StateMachine, Events):
         """ Return the balance of your bot's account for a specific asset
         """
         return self._account.balance(asset)
+
+    def get_converted_asset_amount(self, asset):
+        """
+        Returns asset amount converted to base asset amount
+        """
+        base_asset = self.market['base']
+        quote_asset = Asset(asset['symbol'], bitshares_instance=self.bitshares)
+        if base_asset['symbol'] == quote_asset['symbol']:
+            return asset['amount']
+        else:
+            market = Market(base=base_asset, quote=quote_asset, bitshares_instance=self.bitshares)
+            return market.ticker()['latest']['price'] * asset['amount']
+
+    @property
+    def test_mode(self):
+        return self.config['node'] == "wss://node.testnet.bitshares.eu"
 
     @property
     def balances(self):
@@ -210,7 +265,17 @@ class BaseStrategy(Storage, StateMachine, Events):
         self.bitshares.blocking = False
         return r
 
-    def cancelall(self):
+    def cancel(self, orders):
+        """ Cancel specific orders
+        """
+        if not isinstance(orders, list):
+            orders = [orders]
+        return self.bitshares.cancel(
+            [o["id"] for o in orders if "id" in o],
+            account=self.account
+        )
+
+    def cancel_all(self):
         """ Cancel all orders of this bot
         """
         if self.orders:
