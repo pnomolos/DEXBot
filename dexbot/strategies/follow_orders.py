@@ -16,7 +16,7 @@ class Strategy(BaseStrategy):
             ConfigElement("wall","float",0.0,"the default amount to buy/sell, in quote",(0.0,None)),
             ConfigElement("max","float",100.0,"bot will not trade if price above this",(0.0,None)),
             ConfigElement("min","float",100.0,"bot will not trade if price below this",(0.0,None)),
-            ConfigElement("start","float",100.0,"Starting price, as percentage of settlement price",(0.0,None)),
+            ConfigElement("start","float",100.0,"Starting price, as percentage of bid/ask spread",(0.0,100.0)),
             ConfigElement("reset","bool",False,"bot will alwys reset orders on start",(0.0,None)),
             ConfigElement("staggers","int",1,"Number of additional staggered orders to place",(1,100)),
             ConfigElement("staggerspread","float",5,"Percentage difference between staggered orders",(1,100))
@@ -25,15 +25,11 @@ class Strategy(BaseStrategy):
 
     def safe_dissect(self,thing,name):
         try:
-            self.log.info("%s() returned type: %r repr: %r dict: %r" % (name,type(thing),repr(thing),dict(thing)))
+            self.log.debug("%s() returned type: %r repr: %r dict: %r" % (name,type(thing),repr(thing),dict(thing)))
         except:
-            self.log.info("%s() returned type: %r repr: %r" % (name,type(thing),repr(thing)))
+            self.log.debug("%s() returned type: %r repr: %r" % (name,type(thing),repr(thing)))
 
 
-    def add_price(self,p1,p2):
-        if not p1: return p2
-        return Price(quote=p1['quote']+p2['quote'],base=p1['base']+p2['base'])
-    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Define Callbacks
@@ -89,7 +85,7 @@ class Strategy(BaseStrategy):
                 account=self.account,
                 returnOrderId="head"
             )
-            self.log.info("SELL order done")
+            self.log.debug("SELL order done")
             myorders[ret['orderid']] = sell_price
             sell_price += step2
             
@@ -107,7 +103,7 @@ class Strategy(BaseStrategy):
                 account=self.account,
                 returnOrderId="head",
             )
-            self.log.info("BUY order done")
+            self.log.debug("BUY order done")
             myorders[ret['orderid']] = buy_price
             buy_price -= step2
         self['myorders'] = myorders
@@ -115,13 +111,13 @@ class Strategy(BaseStrategy):
         #self.safe_dissect(ret,"execute")
 
     def onmarket(self, data):
-        self.log.info("%r %r" % (type(data),dict(data)))
+        self.safe_dissect(data)
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
-            self.log.info("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
+            self.log.debug("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
-                self.log.info("I think its a SELL to us of %r" % data['quote'])
+                self.log.debug("I think its a SELL to us of %r" % data['quote'])
             if data['base']['asset'] == self.market['quote']:
-                self.log.info("I think its a BUY from us of %r" % data['base'])
+                self.log.debug("I think its a BUY from us of %r" % data['base'])
             self.reassess()
 
     def reassess(self):
@@ -133,7 +129,7 @@ class Strategy(BaseStrategy):
         if len(still_open) == 0:
             self.log.info("no open orders, recalculating the startprice")
             t = self.market.ticker()
-            self.updateorders(float(t['quoteSettlement_price'])*self.bot['start']/100.0)
+            self.updateorders(float(t['highestBid']+((t['lowestAsk']-t['highestBid'])*self.bot['start']/100.0)))
             return
         missing = set(self['myorders'].keys()) - still_open
         if missing:
@@ -145,4 +141,5 @@ class Strategy(BaseStrategy):
                     found_price = self['myorders'][i]
                     highest_diff = diff
             self.updateorders(found_price)
+            self.reassess() # check if order has been filled while we were busy entering orders
 
