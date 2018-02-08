@@ -129,7 +129,9 @@ class Strategy(BaseStrategy):
         if len(still_open) == 0:
             self.log.info("no open orders, recalculating the startprice")
             t = self.market.ticker()
-            self.updateorders(float(t['highestBid']+((t['lowestAsk']-t['highestBid'])*self.bot['start']/100.0)))
+            bid = float(t['highestBid'])
+            ask = float(t['lowestAsk'])
+            self.updateorders(bid+((ask-bid)*self.bot['start']/100.0))
             return
         missing = set(self['myorders'].keys()) - still_open
         if missing:
