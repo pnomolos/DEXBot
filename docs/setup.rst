@@ -16,15 +16,22 @@ the OpenSSL libraries.
 
 Plus for the easy configuration you need the ``whiptail`` command.
 
-On Ubuntu::
+On Ubuntu/Debian/Raspian::
+
+   sudo apt-get install libssl-dev python3-pip python3-dev whiptail
+
+On some Ubuntu systems, it will complain about missing packages: you need to enable
+the ``universe`` repository::
 
    sudo add-apt-repository universe
    sudo apt-get update
-   sudo apt-get install libssl-dev python3-pip python3-dev whiptail
 
-On Debian/Raspian::
+NOTE: you *don't* need to upgrade the system: the issue here is about the *range* of packages
+available, not how new/old they are.
 
-   sudo apt-get install libssl-dev python3-pip python3-dev whiptail
+On some Ubuntu systems, ``add-apt-repository`` isn't available::
+
+   sudo apt-get install software-properties-common python-software-properties
 
 On CentOS/RedHat::
 
