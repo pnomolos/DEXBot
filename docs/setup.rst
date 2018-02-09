@@ -51,6 +51,13 @@ If you add the ``--user`` flag to this command, the binaries of
 ``dexbot`` and ``uptick`` are located in ``~/.local/bin``.
 Otherwise they should be globally reachable.
 
+If you want the latest development version (which may not be tested at all), use git to download::
+
+   git clone git://github.com/ihaywood3/DEXBot/
+   cd DEXBot
+   pip3 install -e .
+
+
 Adding Keys
 -----------
 
@@ -59,6 +66,9 @@ bot's account into a local wallet. This can be done using
 ``uptick`` which is installed as a dependency of ``dexbot``::
 
    uptick addkey
+
+``uptick`` will ask you for a passphrase to protect private keys stored in its wallet.
+This has no relation to any passphrase used in the web wallet.
 
 You can get your private key from the BitShares Web Wallet: click the menu on the top right,
 then "Settings", "Accounts", "View keys", then tab "Owner Permissions", click 

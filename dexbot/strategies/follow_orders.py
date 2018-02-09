@@ -40,8 +40,6 @@ class Strategy(BaseStrategy):
     def updateorders(self,newprice):
         """ Update the orders
         """
-        import pudb
-        #pudb.set_trace()
         self.log.info("Replacing orders. Baseprice is %f" % newprice)
         self['price'] = newprice
         step1 = self.bot['spread']/200.0*newprice
