@@ -5,7 +5,6 @@ from bitshares.amount import Amount
 from bitshares.price import Price, Order, FilledOrder
 from dexbot.basestrategy import BaseStrategy, ConfigElement
 
-import pdb
         
 class Strategy(BaseStrategy):
 
@@ -41,11 +40,12 @@ class Strategy(BaseStrategy):
     def updateorders(self,newprice):
         """ Update the orders
         """
-
+        import pudb
+        #pudb.set_trace()
         self.log.info("Replacing orders. Baseprice is %f" % newprice)
         self['price'] = newprice
-        step1 = (self.bot['spread']/2)/100.0
-        step2 = self.bot['staggerspread']/100.0
+        step1 = self.bot['spread']/200.0*newprice
+        step2 = self.bot['staggerspread']/100.0*newprice
         # Canceling orders
         self.cancel_all()
         myorders = {}
