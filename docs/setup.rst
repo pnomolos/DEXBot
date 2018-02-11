@@ -18,7 +18,7 @@ Plus for the easy configuration you need the ``whiptail`` command.
 
 On Ubuntu/Debian/Raspian::
 
-   sudo apt-get install libssl-dev python3-pip python3-dev whiptail
+   sudo apt-get install gcc libssl-dev python3-pip python3-dev whiptail
 
 On some Ubuntu systems, it will complain about missing packages: you need to enable
 the ``universe`` repository::
@@ -36,7 +36,7 @@ On some Ubuntu systems, ``add-apt-repository`` isn't available::
 On CentOS/RedHat::
 
    sudo yum install -y epel-release
-   sudo yum install openssl-devel python34-pip python34-devel newt
+   sudo yum install gcc openssl-devel python34-pip python34-devel newt
 
 On other distros you need to check the documentation for how to install these packages, the names should be very similar.
   
