@@ -109,7 +109,7 @@ class Strategy(BaseStrategy):
         #self.safe_dissect(ret,"execute")
 
     def onmarket(self, data):
-        self.safe_dissect(data)
+        self.safe_dissect(data,"onmarket")
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
             self.log.debug("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
@@ -122,6 +122,7 @@ class Strategy(BaseStrategy):
         # sadly no smart way to match a FilledOrder to an existing order
         # even price-matching won't work as we can buy at a better price than we asked for
         # so look at what's missing
+        self.log.debug("reassessing...")
         self.account.refresh()
         still_open = set(i['id'] for i in self.account.openorders)
         if len(still_open) == 0:
@@ -142,4 +143,5 @@ class Strategy(BaseStrategy):
                     highest_diff = diff
             self.updateorders(found_price)
             self.reassess() # check if order has been filled while we were busy entering orders
-
+        else:
+            self.log.debug("nothing missing, no action")
