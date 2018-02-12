@@ -1,7 +1,8 @@
 import os
 import json
+import datetime
 import sqlalchemy
-from sqlalchemy import create_engine, Table, Column, String, Integer, MetaData
+from sqlalchemy import create_engine, Table, Column, String, Integer, MetaData, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from appdirs import user_data_dir
@@ -38,7 +39,13 @@ class Config(Base):
         self.key = k
         self.value = v
 
-
+class Journal(Base):
+    __tablename__ == 'journal'
+    category = Column(String)
+    key = Column(String)
+    amount = Column(Float)
+    stamp = Column(DateTime,default=datetime.datetime.now)
+    
 class Storage(dict):
     """ Storage class
 
@@ -100,6 +107,31 @@ class Storage(dict):
             session.delete(row)
             session.commit()
 
+    def save_journal(self, amounts):
+        now_t = datetime.datetime.now()
+        for key, amount in amounts:
+            e = Journal(key=key,category=self.category,amount=amount,stamp=now_t)
+            session.add(e)
+        session.commit()
+
+    def query_journal(self, start, end_=None):
+        """Query this bots journal
+        start: datetime of start time
+        end_: datetime of end (None means up to now)
+        """
+        return static_query_journal(self.category,start,end_)
+
+def static_query_journal(category,start,end_):
+    """Query journal without instantiating a bot
+    """
+    r = session.query(Journal).filter(Journal.category == category)
+    if end_: 
+        r = r.filter(Journal.stamp > start,Journal.stamp < end_)
+    else:
+        r = r.filter(Journal.stamp > start)
+    return r.all()
+
+        
 
 # Derive sqlite file directory
 data_dir = user_data_dir(appname, appauthor)

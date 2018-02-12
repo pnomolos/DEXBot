@@ -46,6 +46,9 @@ class Strategy(BaseStrategy):
         step2 = self.bot['staggerspread']/100.0*newprice
         # Canceling orders
         self.cancel_all()
+        # record balances
+        self.record_balances(newprice)
+        
         myorders = {}
 
         if newprice < self.bot["min"]:

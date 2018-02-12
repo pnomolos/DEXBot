@@ -283,3 +283,9 @@ class BaseStrategy(Storage, StateMachine, Events):
                 [o["id"] for o in self.orders],
                 account=self.account
             )
+
+    def record_balances(self,baseprice):
+        self.save_journal([('price',baseprice),
+                           (self.market['quote']['symbol'],self.balance(self.market['quote'])),
+                           (self.market['base']['symbol'],self.balance(self.market['base']))])
+        
