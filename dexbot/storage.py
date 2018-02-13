@@ -40,7 +40,8 @@ class Config(Base):
         self.value = v
 
 class Journal(Base):
-    __tablename__ == 'journal'
+    __tablename__ = 'journal'
+    id = Column(Integer, primary_key=True)
     category = Column(String)
     key = Column(String)
     amount = Column(Float)
