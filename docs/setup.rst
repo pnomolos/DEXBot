@@ -45,7 +45,7 @@ Installation
 
 ::
 
-   pip3 install https://github.com/ihaywood3/DEXBot/releases/download/0.0.7-ih/dexbot-0.0.8_ih-py3-none-any.whl
+   pip3 install https://github.com/ihaywood3/DEXBot/releases/download/0.0.9-ih/dexbot-0.0.9_ih-py3-none-any.whl
 
 If you add the ``--user`` flag to this command, the binaries of
 ``dexbot`` and ``uptick`` are located in ``~/.local/bin``.
