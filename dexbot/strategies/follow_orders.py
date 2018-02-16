@@ -116,9 +116,9 @@ class Strategy(BaseStrategy):
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
             self.log.debug("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
-                self.log.debug("I think its a SELL to us of %r" % data['quote'])
-            if data['base']['asset'] == self.market['quote']:
-                self.log.debug("I think its a BUY from us of %r" % data['base'])
+                self.log.debug("Quote = quote")
+            if repr(data['quote']['asset']) == repr(self.market['quote']):
+                self.log.debug("repr(uote) = repr(quote)")
             self.reassess()
 
     def reassess(self):

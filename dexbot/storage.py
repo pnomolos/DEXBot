@@ -1,6 +1,4 @@
-import os
-import json
-import datetime
+import os, json, re, datetime
 import sqlalchemy
 from sqlalchemy import create_engine, Table, Column, String, Integer, MetaData, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
@@ -126,13 +124,18 @@ def static_query_journal(category,start,end_):
     """Query journal without instantiating a bot
     """
     r = session.query(Journal).filter(Journal.category == category)
+    if type(start) is str:
+        m = re.match("(\\d+)([dw])",start)
+        if m:
+            n = int(m.group(1))
+            start = datetime.datetime.now()
+            if m.group(2) == 'w': n *= 7
+            start -= datetime.timedelta(days=n)
     if end_: 
         r = r.filter(Journal.stamp > start,Journal.stamp < end_)
     else:
         r = r.filter(Journal.stamp > start)
     return r.all()
-
-        
 
 # Derive sqlite file directory
 data_dir = user_data_dir(appname, appauthor)
