@@ -61,16 +61,15 @@ def main(ctx, **kwargs):
 def run(ctx):
     """ Continuously run the bot
     """
-    bot = BotInfrastructure(ctx.config)
-    if ctx.obj['systemd']:
-        try:
-            import sdnotify # a soft dependency on sdnotify -- don't crash on non-systemd systems
-            n = sdnotify.SystemdNotifier()
-            n.notify("READY=1")
-        except:
-            warning("sdnotify not available")    
     try:
         bot = BotInfrastructure(ctx.config)
+        if ctx.obj['systemd']:
+            try:
+                import sdnotify # a soft dependency on sdnotify -- don't crash on non-systemd systems
+                n = sdnotify.SystemdNotifier()
+                n.notify("READY=1")
+            except:
+                warning("sdnotify not available")    
         bot.run()
     except errors.NoBotsAvailable:
         sys.exit(70) # 70= "Software error" in /usr/include/sysexts.h
