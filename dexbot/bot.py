@@ -2,10 +2,14 @@ import importlib
 import time, sys
 import logging
 import os.path
-from multiprocessing import Process
+import threading
+
+from dexbot.basestrategy import BaseStrategy
 
 from bitshares.notify import Notify
 from bitshares.instance import shared_bitshares_instance
+
+import dexbot.errors as errors
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +26,7 @@ log_bots = logging.getLogger('dexbot.per_bot')
 # GUIs can add a handler to this logger to get a stream of events re the running bots.
 
 
-class BotInfrastructure(Process):
+class BotInfrastructure(threading.Thread):
 
     bots = dict()
 
@@ -30,9 +34,10 @@ class BotInfrastructure(Process):
         self,
         config,
         bitshares_instance=None,
-        gui_data=None
+        view=None
     ):
         super().__init__()
+
         # BitShares instance
         self.bitshares = bitshares_instance or shared_bitshares_instance()
 
@@ -64,7 +69,7 @@ class BotInfrastructure(Process):
                     config=config,
                     name=botname,
                     bitshares_instance=self.bitshares,
-                    gui_data=gui_data
+                    view=view
                 )
                 markets.add(bot['market'])
                 accounts.add(bot['account'])
@@ -73,7 +78,8 @@ class BotInfrastructure(Process):
 
         if len(markets) == 0:
             log.critical("No bots to launch, exiting")
-            sys.exit(70) # 70= "Software error" in /usr/include/sysexts.h
+            raise errors.NoBotsAvailable()
+
         # Create notification instance
         # Technically, this will multiplex markets and accounts and
         # we need to demultiplex the events after we have received them
@@ -89,7 +95,7 @@ class BotInfrastructure(Process):
     # Events
     def on_block(self, data):
         for botname, bot in self.config["bots"].items():
-            if (not botname in self.bots) or self.bots[botname].disabled:
+            if botname not in self.bots or self.bots[botname].disabled:
                 continue
             try:
                 self.bots[botname].ontick(data)
@@ -125,3 +131,16 @@ class BotInfrastructure(Process):
 
     def run(self):
         self.notify.listen()
+
+    def stop(self):
+        self.notify.websocket.close()
+
+    def remove_bot(self):
+        for bot in self.bots:
+            self.bots[bot].purge()
+
+    @staticmethod
+    def remove_offline_bot(config, bot_name):
+        # Initialize the base strategy to get control over the data
+        strategy = BaseStrategy(config, bot_name)
+        strategy.purge()

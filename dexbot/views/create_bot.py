@@ -15,12 +15,13 @@ class CreateBotView(QtWidgets.QDialog):
 
         # Todo: Using a model here would be more Qt like
         self.ui.strategy_input.addItems(self.controller.strategies)
+        self.ui.base_asset_input.addItems(self.controller.base_assets)
 
         self.bot_name = controller.get_unique_bot_name()
         self.ui.bot_name_input.setText(self.bot_name)
 
         self.ui.save_button.clicked.connect(self.handle_save)
-        self.ui.cancel_button.clicked.connect(self.handle_cancel)
+        self.ui.cancel_button.clicked.connect(self.reject)
 
     def validate_bot_name(self):
         bot_name = self.ui.bot_name_input.text()
@@ -30,7 +31,7 @@ class CreateBotView(QtWidgets.QDialog):
         return self.controller.is_asset_valid(asset)
 
     def validate_market(self):
-        base_asset = self.ui.base_asset_input.text()
+        base_asset = self.ui.base_asset_input.currentText()
         quote_asset = self.ui.quote_asset_input.text()
         return base_asset.lower() != quote_asset.lower()
 
@@ -45,7 +46,7 @@ class CreateBotView(QtWidgets.QDialog):
 
     def validate_form(self):
         error_text = ''
-        base_asset = self.ui.base_asset_input.text()
+        base_asset = self.ui.base_asset_input.currentText()
         quote_asset = self.ui.quote_asset_input.text()
         if not self.validate_bot_name():
             bot_name = self.ui.bot_name_input.text()
@@ -53,7 +54,7 @@ class CreateBotView(QtWidgets.QDialog):
         elif not self.validate_asset(base_asset):
             error_text = 'Field "Base Asset" does not have a valid asset.'
         elif not self.validate_asset(quote_asset):
-            error_text = 'Field "Base Quote" does not have a valid asset.'
+            error_text = 'Field "Quote Asset" does not have a valid asset.'
         elif not self.validate_market():
             error_text = "Market {}/{} doesn't exist.".format(base_asset, quote_asset)
         elif not self.validate_account_name():
@@ -72,19 +73,29 @@ class CreateBotView(QtWidgets.QDialog):
         if not self.validate_form():
             return
 
-        self.bot_name = self.ui.bot_name_input.text()
-        account = self.ui.account_input.text()
-        market = '{}:{}'.format(self.ui.base_asset_input, self.ui.quote_asset_input)
-        strategy = self.ui.strategy_input.currentText()
+        # Add the private key to the database
+        private_key = self.ui.private_key_input.text()
+        self.controller.add_private_key(private_key)
+
+        ui = self.ui
+        spread = float(ui.spread_input.text()[:-1])  # Remove the percentage character from the end
+        target = {
+            'amount': float(ui.amount_input.text()),
+            'center_price': float(ui.center_price_input.text()),
+            'spread': spread
+        }
+
+        base_asset = ui.base_asset_input.currentText()
+        quote_asset = ui.quote_asset_input.text()
+        strategy = ui.strategy_input.currentText()
         bot_module = self.controller.get_strategy_module(strategy)
         bot_data = {
-            'account': account,
-            'market': market,
+            'account': ui.account_input.text(),
+            'market': '{}/{}'.format(quote_asset, base_asset),
             'module': bot_module,
-            'strategy': strategy
+            'strategy': strategy,
+            'target': target
         }
+        self.bot_name = ui.bot_name_input.text()
         self.controller.add_bot_config(self.bot_name, bot_data)
         self.accept()
-
-    def handle_cancel(self):
-        self.reject()

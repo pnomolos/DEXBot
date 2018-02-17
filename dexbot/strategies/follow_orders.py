@@ -4,7 +4,7 @@ from collections import Counter
 from bitshares.amount import Amount
 from bitshares.price import Price, Order, FilledOrder
 from dexbot.basestrategy import BaseStrategy, ConfigElement
-
+import time
         
 class Strategy(BaseStrategy):
 
@@ -112,13 +112,12 @@ class Strategy(BaseStrategy):
         #self.safe_dissect(ret,"execute")
 
     def onmarket(self, data):
-        self.safe_dissect(data,"onmarket")
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
             self.log.debug("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
                 self.log.debug("Quote = quote")
-            if repr(data['quote']['asset']) == repr(self.market['quote']):
-                self.log.debug("repr(uote) = repr(quote)")
+            if repr(data['quote']['asset']['id']) == repr(self.market['quote']['id']):
+                self.log.debug("quote['id'] = quote['id']")
             self.reassess()
 
     def reassess(self):
@@ -128,12 +127,16 @@ class Strategy(BaseStrategy):
         self.log.debug("reassessing...")
         self.account.refresh()
         still_open = set(i['id'] for i in self.account.openorders)
+        self.log.debug("still_open: %r" % still_open)
         if len(still_open) == 0:
             self.log.info("no open orders, recalculating the startprice")
             t = self.market.ticker()
             bid = float(t['highestBid'])
             ask = float(t['lowestAsk'])
             self.updateorders(bid+((ask-bid)*self.bot['start']/100.0))
+            time.sleep(1)
+            self.log.debug("calling reassess")
+            self.reassess()
             return
         missing = set(self['myorders'].keys()) - still_open
         if missing:
@@ -145,6 +148,8 @@ class Strategy(BaseStrategy):
                     found_price = self['myorders'][i]
                     highest_diff = diff
             self.updateorders(found_price)
+            time.sleep(1)
+            self.log.debug("calling reassess")
             self.reassess() # check if order has been filled while we were busy entering orders
         else:
             self.log.debug("nothing missing, no action")

@@ -13,19 +13,30 @@ class MainController:
         set_shared_bitshares_instance(bitshares_instance)
         self.bot_template = BotInfrastructure
 
-    def create_bot(self, botname, config):
-        gui_data = {'id': botname, 'controller': self}
-        bot = self.bot_template(config, self.bitshares_instance, gui_data)
+    def create_bot(self, botname, config, view):
+        # Todo: Add some threading here so that the GUI doesn't freeze
+        bot = self.bot_template(config, self.bitshares_instance, view)
         bot.daemon = True
         bot.start()
         self.bots[botname] = bot
 
-    def stop_bot(self, bot_id):
-        self.bots[bot_id].terminate()
+    def stop_bot(self, bot_name):
+        self.bots[bot_name].stop()
+        self.bots.pop(bot_name, None)
 
-    def remove_bot(self, botname):
-        # Todo: cancell all orders on removal
-        self.bots[botname].terminate()
+    def remove_bot(self, bot_name):
+        # Todo: Add some threading here so that the GUI doesn't freeze
+        if bot_name in self.bots:
+            # Bot currently running
+            self.bots[bot_name].remove_bot()
+            self.bots[bot_name].stop()
+            self.bots.pop(bot_name, None)
+        else:
+            # Bot not running
+            config = self.get_bot_config(bot_name)
+            self.bot_template.remove_offline_bot(config, bot_name)
+
+        self.remove_bot_config(bot_name)
 
     @staticmethod
     def load_config():
@@ -64,3 +75,14 @@ class MainController:
             config = yaml.load(f)
             config['bots'] = {botname: config['bots'][botname]}
             return config
+
+    @staticmethod
+    def remove_bot_config(bot_name):
+        yaml = YAML()
+        with open('config.yml', 'r') as f:
+            config = yaml.load(f)
+
+        config['bots'].pop(bot_name, None)
+
+        with open("config.yml", "w") as f:
+            yaml.dump(config, f)

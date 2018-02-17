@@ -2,8 +2,7 @@
 import yaml
 import logging
 import click
-import os.path, os
-
+import os.path, os, sys
 from .ui import (
     verbose,
     chain,
@@ -18,6 +17,7 @@ from .ui import (
 
 from dexbot.bot import BotInfrastructure
 from dexbot.cli_conf import configure_dexbot
+import dexbot.errors as errors
 
 
 log = logging.getLogger(__name__)
@@ -68,8 +68,12 @@ def run(ctx):
             n = sdnotify.SystemdNotifier()
             n.notify("READY=1")
         except:
-            warning("sdnotify not available")
-    bot.run()
+            warning("sdnotify not available")    
+    try:
+        bot = BotInfrastructure(ctx.config)
+        bot.run()
+    except errors.NoBotsAvailable:
+        sys.exit(70) # 70= "Software error" in /usr/include/sysexts.h
 
 @main.command()
 @click.pass_context

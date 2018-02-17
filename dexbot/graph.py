@@ -105,7 +105,8 @@ if __name__=='__main__':
     start = sys.argv[2]
     quote = sys.argv[3]
     base= sys.argv[4]
-    data = query_to_dicts(storage.static_query_journal(botname,start,None))
+    s = storage.Storage(botname)
+    data = query_to_dicts(s.query_journal(start))
     data = rebase_data(data,quote,base)
     print(do_graph(data))
 

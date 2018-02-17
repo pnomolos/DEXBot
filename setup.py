@@ -2,7 +2,8 @@
 
 from setuptools import setup, find_packages
 
-VERSION = '0.0.9-ih'
+
+VERSION = '0.1.0-ih'
 
 setup(
     name='dexbot',
@@ -32,7 +33,7 @@ setup(
         ],
     },
     install_requires=[
-        "bitshares>=0.1.10",
+        "bitshares>=0.1.11",
         "uptick>=0.1.4",
         "prettytable",
         "click",
@@ -44,7 +45,12 @@ setup(
         "appdirs",
         #"pyqt5",
 	"sdnotify",
-        "ruamel.yaml"
+        "ruamel.yaml",
+        "matplotlib"
+    ],
+    dependency_links=[
+        # Temporally force downloads from a different repo, change this once the websocket fix has been merged
+        "https://github.com/mikakoi/python-bitshares/tarball/websocket-fix#egg=bitshares-0.1.11.beta"
     ],
     include_package_data=True,
 )
