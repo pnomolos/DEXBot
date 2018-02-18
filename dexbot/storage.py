@@ -103,7 +103,8 @@ class DatabaseWorker(threading.Thread):
 
         self.task_queue = queue.Queue()
         self.results = {}
-
+        self.lock = threading.Lock()
+        self.event = threading.Event()
         self.daemon = True
         self.start()
 
@@ -113,16 +114,20 @@ class DatabaseWorker(threading.Thread):
             func(*args)
 
     def get_result(self, token):
-        delay = 0.001
         while True:
-            if token in self.results:
-                return_value = self.results[token]
-                del self.results[token]
-                return return_value
+            with self.lock:
+                if token in self.results:
+                    return_value = self.results[token]
+                    del self.results[token]
+                    return return_value
+                else:
+                    self.event.clear()
+            self.event.wait()
 
-            time.sleep(delay)
-            if delay < 5:
-                delay += delay
+    def set_result(self, token, result):
+        with self.lock:
+            self.results[token] = result
+            self.event.set()
 
     def execute(self, func, *args):
         token = str(uuid.uuid4)
@@ -154,7 +159,7 @@ class DatabaseWorker(threading.Thread):
             result = None
         else:
             result = json.loads(e.value)
-        self.results[token] = result
+        self.set_result(token,result)
 
     def del_item(self, category, key, token):
         e = self.session.query(Config).filter_by(
@@ -169,14 +174,14 @@ class DatabaseWorker(threading.Thread):
             category=category,
             key=key
         ).first()
-        self.results[token] = bool(e)
+        self.set_result(token,bool(e))
 
     def get_items(self, category, token):
         es = self.session.query(Config).filter_by(
             category=category
         ).all()
         result = [(e.key, e.value) for e in es]
-        self.results[token] = result
+        self.set_result(token,result)
 
     def clear(self, category, token):
         rows = self.session.query(Config).filter_by(
@@ -210,7 +215,7 @@ class DatabaseWorker(threading.Thread):
             r = r.filter(Journal.stamp > start,Journal.stamp < end_)
         else:
             r = r.filter(Journal.stamp > start)
-        self.results[token] = r.all()
+        self.set_result(token,r.all())
 
 # Derive sqlite file directory
 data_dir = user_data_dir(appname, appauthor)
