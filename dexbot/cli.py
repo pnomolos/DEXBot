@@ -63,7 +63,7 @@ def run(ctx):
     """
     try:
         bot = BotInfrastructure(ctx.config)
-	bot.init_bots()
+        bot.init_bots()
         if ctx.obj['systemd']:
             try:
                 import sdnotify # a soft dependency on sdnotify -- don't crash on non-systemd systems
