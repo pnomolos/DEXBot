@@ -63,6 +63,7 @@ def run(ctx):
     """
     try:
         bot = BotInfrastructure(ctx.config)
+	bot.init_bots()
         if ctx.obj['systemd']:
             try:
                 import sdnotify # a soft dependency on sdnotify -- don't crash on non-systemd systems
@@ -70,7 +71,7 @@ def run(ctx):
                 n.notify("READY=1")
             except:
                 warning("sdnotify not available")    
-        bot.run()
+        bot.notify.listen()
     except errors.NoBotsAvailable:
         sys.exit(70) # 70= "Software error" in /usr/include/sysexts.h
 
