@@ -135,7 +135,6 @@ class Strategy(BaseStrategy):
             ask = float(t['lowestAsk'])
             self.updateorders(bid+((ask-bid)*self.bot['start']/100.0))
             time.sleep(1)
-            self.log.debug("calling reassess")
             self.reassess()
             return
         missing = set(self['myorders'].keys()) - still_open
@@ -149,7 +148,6 @@ class Strategy(BaseStrategy):
                     highest_diff = diff
             self.updateorders(found_price)
             time.sleep(1)
-            self.log.debug("calling reassess")
             self.reassess() # check if order has been filled while we were busy entering orders
         else:
             self.log.debug("nothing missing, no action")
