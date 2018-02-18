@@ -4,8 +4,7 @@ from collections import Counter
 from bitshares.amount import Amount
 from bitshares.price import Price, Order, FilledOrder
 from dexbot.basestrategy import BaseStrategy, ConfigElement
-
-import pdb
+import time
         
 class Strategy(BaseStrategy):
 
@@ -16,7 +15,7 @@ class Strategy(BaseStrategy):
             ConfigElement("wall","float",0.0,"the default amount to buy/sell, in quote",(0.0,None)),
             ConfigElement("max","float",100.0,"bot will not trade if price above this",(0.0,None)),
             ConfigElement("min","float",100.0,"bot will not trade if price below this",(0.0,None)),
-            ConfigElement("start","float",100.0,"Starting price, as percentage of settlement price",(0.0,None)),
+            ConfigElement("start","float",100.0,"Starting price, as percentage of bid/ask spread",(0.0,100.0)),
             ConfigElement("reset","bool",False,"bot will alwys reset orders on start",(0.0,None)),
             ConfigElement("staggers","int",1,"Number of additional staggered orders to place",(1,100)),
             ConfigElement("staggerspread","float",5,"Percentage difference between staggered orders",(1,100))
@@ -25,15 +24,11 @@ class Strategy(BaseStrategy):
 
     def safe_dissect(self,thing,name):
         try:
-            self.log.info("%s() returned type: %r repr: %r dict: %r" % (name,type(thing),repr(thing),dict(thing)))
+            self.log.debug("%s() returned type: %r repr: %r dict: %r" % (name,type(thing),repr(thing),dict(thing)))
         except:
-            self.log.info("%s() returned type: %r repr: %r" % (name,type(thing),repr(thing)))
+            self.log.debug("%s() returned type: %r repr: %r" % (name,type(thing),repr(thing)))
 
 
-    def add_price(self,p1,p2):
-        if not p1: return p2
-        return Price(quote=p1['quote']+p2['quote'],base=p1['base']+p2['base'])
-    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Define Callbacks
@@ -45,13 +40,15 @@ class Strategy(BaseStrategy):
     def updateorders(self,newprice):
         """ Update the orders
         """
-
         self.log.info("Replacing orders. Baseprice is %f" % newprice)
         self['price'] = newprice
-        step1 = (self.bot['spread']/2)/100.0
-        step2 = self.bot['staggerspread']/100.0
+        step1 = self.bot['spread']/200.0*newprice
+        step2 = self.bot['staggerspread']/100.0*newprice
         # Canceling orders
         self.cancel_all()
+        # record balances
+        self.record_balances(newprice)
+        
         myorders = {}
 
         if newprice < self.bot["min"]:
@@ -89,7 +86,7 @@ class Strategy(BaseStrategy):
                 account=self.account,
                 returnOrderId="head"
             )
-            self.log.info("SELL order done")
+            self.log.debug("SELL order done")
             myorders[ret['orderid']] = sell_price
             sell_price += step2
             
@@ -107,7 +104,7 @@ class Strategy(BaseStrategy):
                 account=self.account,
                 returnOrderId="head",
             )
-            self.log.info("BUY order done")
+            self.log.debug("BUY order done")
             myorders[ret['orderid']] = buy_price
             buy_price -= step2
         self['myorders'] = myorders
@@ -115,25 +112,30 @@ class Strategy(BaseStrategy):
         #self.safe_dissect(ret,"execute")
 
     def onmarket(self, data):
-        self.log.info("%r %r" % (type(data),dict(data)))
         if type(data) is FilledOrder and data['account_id'] == self.account['id']:
-            self.log.info("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
+            self.log.debug("data['quote']['asset'] = %r self.market['quote'] = %r" % (data['quote']['asset'],self.market['quote']))
             if data['quote']['asset'] == self.market['quote']:
-                self.log.info("I think its a SELL to us of %r" % data['quote'])
-            if data['base']['asset'] == self.market['quote']:
-                self.log.info("I think its a BUY from us of %r" % data['base'])
+                self.log.debug("Quote = quote")
+            if repr(data['quote']['asset']['id']) == repr(self.market['quote']['id']):
+                self.log.debug("quote['id'] = quote['id']")
             self.reassess()
 
     def reassess(self):
         # sadly no smart way to match a FilledOrder to an existing order
         # even price-matching won't work as we can buy at a better price than we asked for
         # so look at what's missing
+        self.log.debug("reassessing...")
         self.account.refresh()
         still_open = set(i['id'] for i in self.account.openorders)
+        self.log.debug("still_open: %r" % still_open)
         if len(still_open) == 0:
             self.log.info("no open orders, recalculating the startprice")
             t = self.market.ticker()
-            self.updateorders(float(t['quoteSettlement_price'])*self.bot['start']/100.0)
+            bid = float(t['highestBid'])
+            ask = float(t['lowestAsk'])
+            self.updateorders(bid+((ask-bid)*self.bot['start']/100.0))
+            time.sleep(1)
+            self.reassess()
             return
         missing = set(self['myorders'].keys()) - still_open
         if missing:
@@ -145,4 +147,7 @@ class Strategy(BaseStrategy):
                     found_price = self['myorders'][i]
                     highest_diff = diff
             self.updateorders(found_price)
-
+            time.sleep(1)
+            self.reassess() # check if order has been filled while we were busy entering orders
+        else:
+            self.log.debug("nothing missing, no action")
