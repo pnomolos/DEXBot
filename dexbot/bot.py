@@ -40,9 +40,14 @@ class BotInfrastructure(threading.Thread):
 
         # BitShares instance
         self.bitshares = bitshares_instance or shared_bitshares_instance()
-
         self.config = config
-
+        self.view = view
+        
+    def init_bots(self):
+        """Do the actual initialisation of bots
+        Potentially quite slow (tens of seconds)
+        So called as part of run()
+        """
         # set the module search path
         user_bot_path = os.path.expanduser("~/bots")
         if os.path.exists(user_bot_path):
@@ -66,10 +71,10 @@ class BotInfrastructure(threading.Thread):
                     'Strategy'
                 )
                 self.bots[botname] = klass(
-                    config=config,
+                    config=self.config,
                     name=botname,
                     bitshares_instance=self.bitshares,
-                    view=view
+                    view=self.view
                 )
                 markets.add(bot['market'])
                 accounts.add(bot['account'])
@@ -130,6 +135,7 @@ class BotInfrastructure(threading.Thread):
                     self.bots[botname].log.exception(".onAccountUpdate()")
 
     def run(self):
+        self.init_bots()
         self.notify.listen()
 
     def stop(self):
