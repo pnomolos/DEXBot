@@ -1,4 +1,5 @@
-import logging, collections
+import logging
+import collections
 from events import Events
 from bitshares.asset import Asset
 from bitshares.market import Market
@@ -9,7 +10,8 @@ from .storage import Storage
 from .statemachine import StateMachine
 
 
-ConfigElement = collections.namedtuple('ConfigElement','key type default description extra')
+ConfigElement = collections.namedtuple(
+    'ConfigElement', 'key type default description extra')
 # bots need to specify their own configuration values
 # I want this to be UI-agnostic so a future web or GUI interface can use it too
 # so each bot can have a class method 'configure' which returns a list of ConfigElement
@@ -17,8 +19,8 @@ ConfigElement = collections.namedtuple('ConfigElement','key type default descrip
 # key: the key in the bot config dictionary that gets saved back to config.yml
 # type: one of "int", "float", "bool", "string", "choice"
 # default: the default value. must be right type.
-# description: comments to user, full sentences encouraged 
-# extra: 
+# description: comments to user, full sentences encouraged
+# extra:
 #       for int & float: a (min, max) tuple
 #       for string: a regular expression, entries must match it, can be None which equivalent to .*
 #       for bool, ignored
@@ -77,7 +79,7 @@ class BaseStrategy(Storage, StateMachine, Events):
     @classmethod
     def configure(kls):
         """
-        Return a list of ConfigElement objects defining the configuration values for 
+        Return a list of ConfigElement objects defining the configuration values for
         this class
         User interfaces should then generate widgets based on this values, gather
         data and save back to the config dictionary for the bot.
@@ -87,10 +89,20 @@ class BaseStrategy(Storage, StateMachine, Events):
         """
         # these configs are common to all bots
         return [
-            ConfigElement("account","string","","BitShares account name for the bot to operate with",""),
-            ConfigElement("market","string","USD:BTS","BitShares market to operate on, in the format ASSET:OTHERASSET, for example \"USD:BTS\"","[A-Z]+:[A-Z]+")
+            ConfigElement(
+                "account",
+                "string",
+                "",
+                "BitShares account name for the bot to operate with",
+                ""),
+            ConfigElement(
+                "market",
+                "string",
+                "USD:BTS",
+                "BitShares market to operate on, in the format ASSET:OTHERASSET, for example \"USD:BTS\"",
+                "[A-Z]+:[A-Z]+")
         ]
-    
+
     def __init__(
         self,
         config,
@@ -157,13 +169,14 @@ class BaseStrategy(Storage, StateMachine, Events):
                                                                                'account': self.bot['account'],
                                                                                'market': self.bot['market'],
                                                                                'is_disabled': lambda: self.disabled})
-    
+
     @property
     def orders(self):
         """ Return the bot's open accounts in the current market
         """
         self.account.refresh()
-        return [o for o in self.account.openorders if self.bot["market"] == o.market and self.account.openorders]
+        return [o for o in self.account.openorders if self.bot["market"]
+                == o.market and self.account.openorders]
 
     def get_order(self, order_id):
         for order in self.orders:
@@ -191,7 +204,8 @@ class BaseStrategy(Storage, StateMachine, Events):
         limit_orders = self.account['limit_orders'][:]
         for o in limit_orders:
             base_amount = o['for_sale']
-            price = o['sell_price']['base']['amount'] / o['sell_price']['quote']['amount']
+            price = o['sell_price']['base']['amount'] / \
+                o['sell_price']['quote']['amount']
             quote_amount = base_amount / price
             o['sell_price']['base']['amount'] = base_amount
             o['sell_price']['quote']['amount'] = quote_amount
@@ -231,7 +245,10 @@ class BaseStrategy(Storage, StateMachine, Events):
         if base_asset['symbol'] == quote_asset['symbol']:
             return asset['amount']
         else:
-            market = Market(base=base_asset, quote=quote_asset, bitshares_instance=self.bitshares)
+            market = Market(
+                base=base_asset,
+                quote=quote_asset,
+                bitshares_instance=self.bitshares)
             return market.ticker()['latest']['price'] * asset['amount']
 
     @property
@@ -284,15 +301,15 @@ class BaseStrategy(Storage, StateMachine, Events):
                 account=self.account
             )
 
-    def record_balances(self,baseprice):
-        self.save_journal([('price',baseprice),
-                           (self.market['quote']['symbol'],self.balance(self.market['quote'])),
-                           (self.market['base']['symbol'],self.balance(self.market['base']))])
-        
+    def record_balances(self, baseprice):
+        self.save_journal([('price', baseprice),
+                           (self.market['quote']['symbol'],
+                            self.balance(self.market['quote'])),
+                           (self.market['base']['symbol'], self.balance(self.market['base']))])
+
     def purge(self):
         """
         Clear all the bot data from the database and cancel all orders
         """
         self.cancel_all()
         self.clear()
-

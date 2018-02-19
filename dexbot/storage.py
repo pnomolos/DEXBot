@@ -45,20 +45,23 @@ class Config(Base):
         self.key = k
         self.value = v
 
+
 class Journal(Base):
     __tablename__ = 'journal'
     id = Column(Integer, primary_key=True)
     category = Column(String)
     key = Column(String)
     amount = Column(Float)
-    stamp = Column(DateTime,default=datetime.datetime.now)
-    
+    stamp = Column(DateTime, default=datetime.datetime.now)
+
+
 class Storage(dict):
     """ Storage class
 
         :param string category: The category to distinguish
                                 different storage namespaces
     """
+
     def __init__(self, category):
         self.category = category
 
@@ -86,6 +89,7 @@ class Storage(dict):
     def query_journal(self, start, end_=None):
         return worker.execute(worker.query_journal, self.category, start, end_)
 
+
 class DatabaseWorker(threading.Thread):
     """
     Thread safe database worker
@@ -110,7 +114,7 @@ class DatabaseWorker(threading.Thread):
 
     def run(self):
         for func, args, token in iter(self.task_queue.get, None):
-            args = args+(token,)
+            args = args + (token,)
             func(*args)
 
     def get_result(self, token):
@@ -136,7 +140,7 @@ class DatabaseWorker(threading.Thread):
 
     def execute_noreturn(self, func, *args):
         self.task_queue.put((func, args, None))
-        
+
     def set_item(self, category, key, value, token):
         value = json.dumps(value)
         e = self.session.query(Config).filter_by(
@@ -159,7 +163,7 @@ class DatabaseWorker(threading.Thread):
             result = None
         else:
             result = json.loads(e.value)
-        self.set_result(token,result)
+        self.set_result(token, result)
 
     def del_item(self, category, key, token):
         e = self.session.query(Config).filter_by(
@@ -174,14 +178,14 @@ class DatabaseWorker(threading.Thread):
             category=category,
             key=key
         ).first()
-        self.set_result(token,bool(e))
+        self.set_result(token, bool(e))
 
     def get_items(self, category, token):
         es = self.session.query(Config).filter_by(
             category=category
         ).all()
         result = [(e.key, e.value) for e in es]
-        self.set_result(token,result)
+        self.set_result(token, result)
 
     def clear(self, category, token):
         rows = self.session.query(Config).filter_by(
@@ -194,7 +198,7 @@ class DatabaseWorker(threading.Thread):
     def save_journal(self, category, amounts, token):
         now_t = datetime.datetime.now()
         for key, amount in amounts:
-            e = Journal(key=key,category=category,amount=amount,stamp=now_t)
+            e = Journal(key=key, category=category, amount=amount, stamp=now_t)
             self.session.add(e)
         self.session.commit()
 
@@ -204,18 +208,20 @@ class DatabaseWorker(threading.Thread):
         end_: datetime of end (None means up to now)
         """
         r = self.session.query(Journal).filter(Journal.category == category)
-        if type(start) is str:
-            m = re.match("(\\d+)([dw])",start)
+        if isinstance(start, str):
+            m = re.match("(\\d+)([dw])", start)
             if m:
                 n = int(m.group(1))
                 start = datetime.datetime.now()
-                if m.group(2) == 'w': n *= 7
+                if m.group(2) == 'w':
+                    n *= 7
                 start -= datetime.timedelta(days=n)
-        if end_: 
-            r = r.filter(Journal.stamp > start,Journal.stamp < end_)
+        if end_:
+            r = r.filter(Journal.stamp > start, Journal.stamp < end_)
         else:
             r = r.filter(Journal.stamp > start)
-        self.set_result(token,r.all())
+        self.set_result(token, r.all())
+
 
 # Derive sqlite file directory
 data_dir = user_data_dir(appname, appauthor)

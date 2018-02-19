@@ -1,5 +1,6 @@
 import importlib
-import time, sys
+import time
+import sys
 import logging
 import os.path
 import threading
@@ -14,16 +15,18 @@ import dexbot.errors as errors
 log = logging.getLogger(__name__)
 
 
-# FIXME: currently static list of bot strategies: ? how to enumerate bots available and deploy new bot strategies.
+# FIXME: currently static list of bot strategies: ? how to enumerate bots
+# available and deploy new bot strategies.
 
-STRATEGIES=[('dexbot.strategies.echo',"Echo Test"),
-            ('dexbot.strategies.follow_orders',"Haywood's Follow Orders")]
+STRATEGIES = [('dexbot.strategies.echo', "Echo Test"),
+              ('dexbot.strategies.follow_orders', "Haywood's Follow Orders")]
 
 log_bots = logging.getLogger('dexbot.per_bot')
 # NOTE this is the  special logger for per-bot events
 # it  returns LogRecords with extra fields: botname, account, market and is_disabled
 # is_disabled is a callable returning True if the bot is currently disabled.
-# GUIs can add a handler to this logger to get a stream of events re the running bots.
+# GUIs can add a handler to this logger to get a stream of events re the
+# running bots.
 
 
 class BotInfrastructure(threading.Thread):
@@ -42,7 +45,7 @@ class BotInfrastructure(threading.Thread):
         self.bitshares = bitshares_instance or shared_bitshares_instance()
         self.config = config
         self.view = view
-        
+
     def init_bots(self):
         """Do the actual initialisation of bots
         Potentially quite slow (tens of seconds)
@@ -56,14 +59,28 @@ class BotInfrastructure(threading.Thread):
         # Load all accounts and markets in use to subscribe to them
         accounts = set()
         markets = set()
-        
+
         # Initialize bots:
         for botname, bot in self.config["bots"].items():
             if "account" not in bot:
-                log_bots.critical("Bot has no account",extra={'botname':botname,'account':'unknown','market':'unknown','is_dsabled':(lambda: True)})
+                log_bots.critical(
+                    "Bot has no account",
+                    extra={
+                        'botname': botname,
+                        'account': 'unknown',
+                        'market': 'unknown',
+                        'is_dsabled': (
+                            lambda: True)})
                 continue
             if "market" not in bot:
-                log_bots.critical("Bot has no market",extra={'botname':botname,'account':bot['account'],'market':'unknown','is_disabled':(lambda: True)})
+                log_bots.critical(
+                    "Bot has no market",
+                    extra={
+                        'botname': botname,
+                        'account': bot['account'],
+                        'market': 'unknown',
+                        'is_disabled': (
+                            lambda: True)})
                 continue
             try:
                 klass = getattr(
@@ -78,8 +95,15 @@ class BotInfrastructure(threading.Thread):
                 )
                 markets.add(bot['market'])
                 accounts.add(bot['account'])
-            except:
-                log_bots.exception("Bot initialisation",extra={'botname':botname,'account':bot['account'],'market':'unknown','is_disabled':(lambda: True)})
+            except BaseException:
+                log_bots.exception(
+                    "Bot initialisation",
+                    extra={
+                        'botname': botname,
+                        'account': bot['account'],
+                        'market': 'unknown',
+                        'is_disabled': (
+                            lambda: True)})
 
         if len(markets) == 0:
             log.critical("No bots to launch, exiting")

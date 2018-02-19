@@ -5,7 +5,7 @@ Currently temporary comand-line interface for demo purposes
 
 python3 -m dexbot.graph <botname> <period> <quote> <base>
 botname: name of bot in the config
-period: time to graph, number followed by unit, "d" days "w" weeks, 
+period: time to graph, number followed by unit, "d" days "w" weeks,
   so 4d = 4 days, 2w = two weeks
 quote: symbol of quote unit
 base: symbol of base unit
@@ -25,17 +25,19 @@ In the long run
 
 from dexbot import storage
 from os.path import join
-import os, tempfile, sys
+import os
+import tempfile
+import sys
 import numpy
 
-import datetime, time
+import datetime
+import time
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
-
 def query_to_dicts(rows):
-    """Translate SQLAlchemy rows result (from Journal) into 
+    """Translate SQLAlchemy rows result (from Journal) into
     dictionary keyed by datetime, of dictionaries keyed by 'key' value
     values are 'amount' field.
     """
@@ -46,7 +48,8 @@ def query_to_dicts(rows):
         by_dates[i.stamp][i.key] = i.amount
     return by_dates
 
-def apply_dicts_to_graph(plot,data):
+
+def apply_dicts_to_graph(plot, data):
     """
     Graph a dictionary of dictionaries originally from query_to_dicts
     (possibly with intervening modifications)
@@ -55,9 +58,10 @@ def apply_dicts_to_graph(plot,data):
     all_keys = list(data[dates[0]].keys())
     for k in all_keys:
         ydata = [data[d][k] for d in dates]
-        plot.plot(dates,ydata,label=k)
+        plot.plot(dates, ydata, label=k)
     plot.set_xlim(min(dates), max(dates))
-        
+
+
 def do_graph(data):
     """Take some data orignally from query_to_dicts
     (possibly modified), and produce a graph
@@ -65,14 +69,14 @@ def do_graph(data):
     """
     daylocator = mdates.DayLocator()
     daysFmt = mdates.DateFormatter('%b %d')
-    
+
     fig, ax = plt.subplots()
 
     apply_dicts_to_graph(ax, data)
     # format the ticks
     ax.xaxis.set_major_locator(daylocator)
     ax.xaxis.set_major_formatter(daysFmt)
-        
+
     # format the coords message box
     def price(x):
         return '$%1.2f' % x
@@ -83,30 +87,32 @@ def do_graph(data):
     # rotates and right aligns the x labels, and moves the bottom of the
     # axes up to make room for them
     fig.autofmt_xdate()
-    
+
     fd, plotfile = tempfile.mkstemp(suffix='.png')
     os.close(fd)
-    plt.savefig(plotfile,bbox_inches='tight')
+    plt.savefig(plotfile, bbox_inches='tight')
     return plotfile
 
-def rebase_data(data,quote,base):
+
+def rebase_data(data, quote, base):
     """Take some data and rebase it in the quote unit using the final price
     """
     last = max(data.keys())
     finalprice = data[last]['price']
-    def process(v):
-        n = {quote:v[quote],base:v[base]/finalprice}
-        n['total'] = n[quote]+n[base]
-        return n
-    return {k:process(v) for k,v in data.items()}
 
-if __name__=='__main__':
+    def process(v):
+        n = {quote: v[quote], base: v[base] / finalprice}
+        n['total'] = n[quote] + n[base]
+        return n
+    return {k: process(v) for k, v in data.items()}
+
+
+if __name__ == '__main__':
     botname = sys.argv[1]
     start = sys.argv[2]
     quote = sys.argv[3]
-    base= sys.argv[4]
+    base = sys.argv[4]
     s = storage.Storage(botname)
     data = query_to_dicts(s.query_journal(start))
-    data = rebase_data(data,quote,base)
+    data = rebase_data(data, quote, base)
     print(do_graph(data))
-
