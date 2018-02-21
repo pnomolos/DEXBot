@@ -11,6 +11,7 @@ from bitshares import BitShares
 from bitshares.instance import set_shared_bitshares_instance
 log = logging.getLogger(__name__)
 
+from dexbot.storage import SQLiteHandler
 
 def verbose(f):
     @click.pass_context
@@ -40,6 +41,7 @@ def verbose(f):
         ch = logging.StreamHandler()
         ch.setFormatter(formatter2)
         logging.getLogger("dexbot.per_bot").addHandler(ch)
+        logging.getLogger("dexbot.per_bot").addHandler(SQLiteHandler()) # and log to SQLIte DB
         logging.getLogger("dexbot.per_bot").setLevel(level)
         # don't double up with root logger
         logging.getLogger("dexbot.per_bot").propagate = False

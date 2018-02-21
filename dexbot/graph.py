@@ -67,6 +67,7 @@ def do_graph(data):
     (possibly modified), and produce a graph
     Returns: path to temporary file
     """
+    # from originally the examples in the matplotlib docs
     daylocator = mdates.DayLocator()
     daysFmt = mdates.DateFormatter('%b %d')
 
@@ -96,6 +97,9 @@ def do_graph(data):
 
 def rebase_data(data, quote, base):
     """Take some data and rebase it in the quote unit using the final price
+    (NOT the price when the tranaction occurred) and add a total amount
+    The point here is to try to factor out capital changes and isolate out
+    bot profits/losses
     """
     last = max(data.keys())
     finalprice = data[last]['price']

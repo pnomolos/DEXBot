@@ -8,7 +8,7 @@ from bitshares.price import FilledOrder, Order, UpdateCallOrder
 from bitshares.instance import shared_bitshares_instance
 from .storage import Storage
 from .statemachine import StateMachine
-
+from . import graph
 
 ConfigElement = collections.namedtuple(
     'ConfigElement', 'key type default description extra')
@@ -313,3 +313,14 @@ class BaseStrategy(Storage, StateMachine, Events):
         """
         self.cancel_all()
         self.clear()
+
+    def graph(self,start,end_=None):
+        """Draw a graph over the specified time period (both datetime)
+        Uses routine suitable for one-market trading bots
+        More complex bots (arbitrage, etc) may need to override to provide
+        meaningful graphs
+        """
+        data = graph.query_to_dicts(self.query_journal(start, end_))
+        data = graph.rebase_data(data, self.market['quote']['symbol'], self.market['base']['symbol'])
+        return graph.do_graph(data)
+

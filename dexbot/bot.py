@@ -10,7 +10,8 @@ from dexbot.basestrategy import BaseStrategy
 from bitshares.notify import Notify
 from bitshares.instance import shared_bitshares_instance
 
-import dexbot.errors as errors
+from . import errors
+from . import reports
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +60,6 @@ class BotInfrastructure(threading.Thread):
         # Load all accounts and markets in use to subscribe to them
         accounts = set()
         markets = set()
-
         # Initialize bots:
         for botname, bot in self.config["bots"].items():
             if "account" not in bot:
@@ -121,8 +121,17 @@ class BotInfrastructure(threading.Thread):
             bitshares_instance=self.bitshares
         )
 
+        # set up reporting
+
+        if "reports" in self.config:
+            self.reporter = reports.Reporter(self.config['reports'], self.bots)
+        else:
+            self.reporter = None
+            
     # Events
     def on_block(self, data):
+        if self.reporter is not None:
+            self.reporter.ontick()
         for botname, bot in self.config["bots"].items():
             if botname not in self.bots or self.bots[botname].disabled:
                 continue
