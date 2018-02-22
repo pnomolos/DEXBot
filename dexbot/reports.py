@@ -73,7 +73,8 @@ class Reporter(Storage):
     def ontick(self):
         global signalled
         now = time.time()
-        log.debug("ontick")
+        # because we are consulting lastrun every tick, we keep a RAM copy
+        # as well as one serialised via storage.Storage
         if now - self.lastrun > 24 * 60 * 60 * self.config['days']:
             try:
                 self.run_report(datetime.datetime.fromtimestamp(self.lastrun))
