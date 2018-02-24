@@ -152,6 +152,24 @@ def configure_bot(d, bot):
         d.alert("This bot type does not have configuration information. You will have to check the bot code and add configuration values to config.yml if required")
     return bot
 
+def setup_reporter(d, config):
+    reporter_config = config.get('reporter',{})
+    frequency = d.radiolist("DEXBot can send an e-mail report on its activities at regular intervals", select_choice(
+        reporter_config.get('days',0),
+        [("0",'Never'), ('1','Daily'), ('2','Second-daily'), ('3','Third-daily'), ('7','Weekly')]))
+    if frequency == '0':
+        if 'reporter' in config:
+            del config['reporter']
+        return
+    reporter_config['days'] = int(frequency)
+    reporter_config['send_to'] = d.prompt("E-mail address to send to")
+    reporter_config['send_from'] = d.prompt("E-mail address to send from (blank will use local user and host name)")
+    reporter_config['server'] = d.prompt("SMTP server to use (blank means this server)")
+    reporter_config['port'] = d.prompt("SMTP server port to use","25")
+    reporter_config['login'] = d.prompt("Login username for the SMTP server (blank means don't login)")
+    if reporter_config['login']:
+        reporter_config['password'] = d.prompt("SMTP server password to use",password=True)
+    config['reporter'] = reporter_config
 
 def configure_dexbot(config):
     d = get_whiptail()
@@ -178,6 +196,7 @@ def configure_dexbot(config):
             # search failed, ask the user
             config['node'] = d.prompt(
                 "Search for best BitShares node failed.\n\nPlease enter wss:// url of chosen node.")
+    setup_reporter(d, config)
     setup_systemd(d, config)
     d.clear()
     return config
