@@ -2,6 +2,7 @@
 import yaml
 import logging
 import click
+import signal
 import os.path
 import os
 import sys
@@ -65,6 +66,19 @@ def run(ctx):
     """
     try:
         bot = BotInfrastructure(ctx.config)
+        # set up signalling. do it here as of no relevance to GUI
+        killbots = lambda x, y: bot.do_next_tick(bot.stop)
+        # these first two UNIX & Windows
+        signal.signal(signal.SIGTERM, killbots)
+        signal.signal(signal.SIGINT, killbots)
+        try:
+            # these signals are UNIX-only territory, will ValueError here on Windows
+            signal.signal(signal.SIGHUP, killbots)
+            # future plan: reload config on SIGUSR1
+            #signal.signal(signal.SIGUSR1, lambda x, y: bot.do_next_tick(bot.reread_config))
+            signal.signal(signal.SIGUSR2, lambda x, y: bot.do_next_tick(bot.report_now))
+        except ValueError:
+            log.debug("Cannot set all signals -- not avaiable on this platform")
         bot.init_bots()
         if ctx.obj['systemd']:
             try:
@@ -72,7 +86,7 @@ def run(ctx):
                 n = sdnotify.SystemdNotifier()
                 n.notify("READY=1")
             except BaseException:
-                warning("sdnotify not available")
+                log.debug("sdnotify not available")
         bot.notify.listen()
     except errors.NoBotsAvailable:
         sys.exit(70)  # 70= "Software error" in /usr/include/sysexts.h
