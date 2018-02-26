@@ -48,6 +48,12 @@ logging.basicConfig(
     '-d',
     default=False,
     help='Run as a daemon from systemd')
+@click.option(
+    '--pidfile',
+    '-p',
+    type=str,
+    default='',
+    help='File to write PID')
 @click.pass_context
 def main(ctx, **kwargs):
     ctx.obj = {}
@@ -64,6 +70,9 @@ def main(ctx, **kwargs):
 def run(ctx):
     """ Continuously run the bot
     """
+    if ctx.obj['pidfile']:
+        with open(ctx.obj['pidfile'],'w') as fd:
+            fd.write(str(os.getpid()))
     try:
         bot = BotInfrastructure(ctx.config)
         # set up signalling. do it here as of no relevance to GUI

@@ -9,6 +9,7 @@ Basics
 
    setup
    configuration
+   reports
 
 Strategies
 ----------
