@@ -32,6 +32,8 @@ import numpy
 
 import datetime
 import time
+import matplotlib
+matplotlib.use('AGG') # anti-Grain Geometry: the backend for PNG files
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
