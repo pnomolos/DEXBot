@@ -91,7 +91,7 @@ class Strategy(BaseStrategy):
     def updateorders(self, newprice):
         """ Update the orders
         """
-        self.log.debug("Replacing orders. Baseprice is %f" % newprice)
+        self.log.info("Replacing orders. Baseprice is %f" % newprice)
         self['price'] = newprice
         step1 = self.bot['spread'] / 200.0 * newprice
         step2 = self.bot['staggerspread'] / 100.0 * newprice
@@ -140,7 +140,7 @@ class Strategy(BaseStrategy):
 
         sell_price = newprice + step1
         for i in range(0, self.bot['staggers']):
-            self.log.info("SELL {amt} at {price:.3g} {base}/{quote} (= {inv_price:.3g} {quote}/{base})".format(
+            self.log.info("SELL {amt} at {price:.4g} {base}/{quote} (= {inv_price:.4g} {quote}/{base})".format(
                 amt=repr(amt),
                 price=sell_price,
                 inv_price=1 / sell_price,
@@ -158,7 +158,7 @@ class Strategy(BaseStrategy):
 
         buy_price = newprice - step1
         for i in range(0, self.bot['staggers']):
-            self.log.info("BUY {amt} at {price} {base}/{quote} (= {inv_price} {quote}/{base})".format(
+            self.log.info("BUY {amt} at {price:.4g} {base}/{quote} (= {inv_price:.4g} {quote}/{base})".format(
                 amt=repr(amt),
                 price=buy_price,
                 inv_price=1 / buy_price,
@@ -194,7 +194,7 @@ class Strategy(BaseStrategy):
         # sadly no smart way to match a FilledOrder to an existing order
         # even price-matching won't work as we can buy at a better price than we asked for
         # so look at what's missing
-        self.log.critical("reassessing...")
+        self.log.debug("reassessing...")
         self.account.refresh()
         still_open = set(i['id'] for i in self.account.openorders)
         self.log.debug("still_open: %r" % still_open)
