@@ -6,6 +6,8 @@ import signal
 import os.path
 import os
 import sys
+import appdirs
+
 from .ui import (
     verbose,
     chain,
@@ -18,10 +20,10 @@ from .ui import (
 )
 
 
-from dexbot.bot import BotInfrastructure
-from dexbot.cli_conf import configure_dexbot
-import dexbot.errors as errors
-
+from .bot import BotInfrastructure
+from .cli_conf import configure_dexbot
+from . import errors
+from . import storage
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ logging.basicConfig(
 @click.group()
 @click.option(
     "--configfile",
-    default="config.yml",
+    default=os.path.join(appdirs.user_config_dir("dexbot"),"config.yml"),
 )
 @click.option(
     '--verbose',
@@ -103,19 +105,17 @@ def run(ctx):
 
 @main.command()
 @click.pass_context
-@verbose
 def configure(ctx):
     """ Interactively configure dexbot
     """
+    cfg_file = ctx.obj["configfile"]
     if os.path.exists(ctx.obj['configfile']):
         with open(ctx.obj["configfile"]) as fd:
             config = yaml.load(fd)
     else:
         config = {}
+        storage.mkdir_p(os.path.dirname(ctx.obj['configfile']))
     configure_dexbot(config)
-    cfg_file = ctx.obj["configfile"]
-    if not "/" in cfg_file:  # save to home directory unless user wants something else
-        cfg_file = os.path.expanduser("~/" + cfg_file)
     with open(cfg_file, "w") as fd:
         yaml.dump(config, fd, default_flow_style=False)
     click.echo("new configuration saved")

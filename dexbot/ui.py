@@ -1,7 +1,7 @@
 import os
 import sys
 import click
-import logging
+import logging, logging.config
 import yaml
 from datetime import datetime
 from bitshares.price import Price
@@ -52,7 +52,6 @@ def verbose(f):
         logging.getLogger("dexbot").addHandler(ch)
         # and don't double up on the root logger
         logging.getLogger("").handlers = []
-
         # GrapheneAPI logging
         if ctx.obj["verbose"] > 4:
             verbosity = [
@@ -61,7 +60,6 @@ def verbose(f):
             log = logging.getLogger("grapheneapi")
             log.setLevel(getattr(logging, verbosity.upper()))
             log.addHandler(ch)
-
         if ctx.obj["verbose"] > 8:
             verbosity = [
                 "critical", "error", "warn", "info", "debug"
@@ -69,7 +67,10 @@ def verbose(f):
             log = logging.getLogger("graphenebase")
             log.setLevel(getattr(logging, verbosity.upper()))
             log.addHandler(ch)
-
+        # has the user set logging in the config
+        if "logging" in ctx.config:
+            # this is defined in https://docs.python.org/3.4/library/logging.config.html#logging-config-dictschema
+            logging.config.dictConfig(ctx.config['logging'])
         return ctx.invoke(f, *args, **kwargs)
     return update_wrapper(new_func, f)
 
@@ -98,7 +99,7 @@ def unlock(f):
                     if systemd:
                         # no user available to interact with
                         log.critical("Passphrase not available, exiting")
-                        sys.exit(78)  # 'configuation error' in systexits.h
+                        sys.exit(78)  # 'configuation error' in sysexits.h
                     pwd = click.prompt(
                         "Current Wallet Passphrase", hide_input=True)
                 ctx.bitshares.wallet.unlock(pwd)
@@ -120,10 +121,13 @@ def unlock(f):
 def configfile(f):
     @click.pass_context
     def new_func(ctx, *args, **kwargs):
-        ctx.config = yaml.load(open(ctx.obj["configfile"]))
+        try:
+            ctx.config = yaml.load(open(ctx.obj["configfile"]))
+        except FileNotFoundError:
+            alert("Looking for the config file in %s\nNot found!\nTry running 'dexbot configure' to generate\n" % ctx.obj['configfile'])
+            sys.exit(78) # 'configuation error' in sysexits.h
         return ctx.invoke(f, *args, **kwargs)
     return update_wrapper(new_func, f)
-
 
 def priceChange(new, old):
     if float(old) == 0.0:
@@ -163,7 +167,7 @@ def confirmwarning(msg):
 def alert(msg):
     click.echo(
         "[" +
-        click.style("alert", fg="yellow") +
+        click.style("Alert", fg="red") +
         "] " + msg
     )
 
