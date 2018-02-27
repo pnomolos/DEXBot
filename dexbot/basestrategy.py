@@ -321,6 +321,9 @@ class BaseStrategy(Storage, StateMachine, Events):
         meaningful graphs
         """
         data = graph.query_to_dicts(self.query_journal(start, end_))
+        if len(data) < 2:
+            # not enough data to graph
+            return None
         data = graph.rebase_data(data, self.market['quote']['symbol'], self.market['base']['symbol'])
         return graph.do_graph(data)
 
