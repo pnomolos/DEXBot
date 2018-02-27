@@ -153,42 +153,41 @@ def configure_bot(d, bot):
     return bot
 
 def setup_reporter(d, config):
-    reporter_config = config.get('reporter',{})
+    reporter_config = config.get('reports',{})
     frequency = d.radiolist("DEXBot can send an e-mail report on its activities at regular intervals", select_choice(
-        reporter_config.get('days',0),
+        str(reporter_config.get('days',0)),
         [("0",'Never'), ('1','Daily'), ('2','Second-daily'), ('3','Third-daily'), ('7','Weekly')]))
     if frequency == '0':
         if 'reporter' in config:
             del config['reporter']
         return
     reporter_config['days'] = int(frequency)
-    reporter_config['send_to'] = d.prompt("E-mail address to send to")
-    reporter_config['send_from'] = d.prompt("E-mail address to send from (blank will use local user and host name)")
-    reporter_config['server'] = d.prompt("SMTP server to use (blank means this server)")
-    reporter_config['port'] = d.prompt("SMTP server port to use","25")
-    reporter_config['login'] = d.prompt("Login username for the SMTP server (blank means don't login)")
+    reporter_config['send_to'] = d.prompt("E-mail address to send to",default=reporter_config.get('send_to',''))
+    reporter_config['send_from'] = d.prompt("E-mail address to send from (blank will use local user and host name)",
+                                            default=reporter_config.get('send_from',reporter_config['send_to']))
+    reporter_config['server'] = d.prompt("SMTP server to use (blank means this server)",
+                                         default=reporter_config.get('server',''))
+    reporter_config['port'] = d.prompt("SMTP server port to use",
+                                       default=reporter_config.get('port','25'))
+    reporter_config['login'] = d.prompt("Login username for the SMTP server (blank means don't login)",
+                                        default=reporter_config.get('login',
+                                                                    reporter_config['send_to'].split('@')[0]))
     if reporter_config['login']:
         reporter_config['password'] = d.prompt("SMTP server password to use",password=True)
-    config['reporter'] = reporter_config
+    config['reports'] = reporter_config
 
 def configure_dexbot(config):
     d = get_whiptail()
-    if not 'node' in config:
-        # start our best node search in the background
-        ping_results = start_pings()
     bots = config.get('bots', {})
     if len(bots) == 0:
-        txt = d.prompt("Your name for the first bot")
-        config['bots'] = {txt: configure_bot(d, {})}
-    else:
-        botname = d.menu("Select bot to edit", [
-                         (i, i) for i in bots] + [('NEW', 'New bot')])
-        if botname == 'NEW':
-            txt = d.prompt("Your name for the new bot")
-            config['bots'][txt] = configure_bot(d, {})
-        else:
-            config['bots'][botname] = configure_bot(d, config['bots'][botname])
-    if not 'node' in config:
+        ping_results = start_pings()
+        while True:
+            txt = d.prompt("Your name for the bot")
+            config['bots'] = {txt: configure_bot(d, {})}
+            if not d.confirm("Set up another bot?\n(DEXBOt can run multiple bots in one instance)"):
+                break
+        setup_reporter(d, config)
+        setup_systemd(d, config)
         node = best_node(ping_results)
         if node:
             config['node'] = node
@@ -196,8 +195,24 @@ def configure_dexbot(config):
             # search failed, ask the user
             config['node'] = d.prompt(
                 "Search for best BitShares node failed.\n\nPlease enter wss:// url of chosen node.")
-    setup_reporter(d, config)
-    setup_systemd(d, config)
+    else:
+        action = d.menu("You have an existing configuration.\nSelect an action:",
+                        [('NEW', 'Create a new bot'),
+                         ('DEL', 'Delete a bot'),
+                         ('EDIT', 'Edit a bot'),
+                         ('CONF', 'Redo general config')])
+        if action == 'EDIT':
+            botname = d.menu("Select bot to edit", [(i, i) for i in bots])
+            config['bots'][botname] = configure_bot(d, config['bots'][botname])
+        elif action == 'DEL':
+            botname = d.menu("Select bot to delete", [(i, i) for i in bots])
+            del config['bots'][botname]
+        if action == 'NEW':
+            txt = d.prompt("Your name for the new bot")
+            config['bots'][txt] = configure_bot(d, {})
+        else:
+            setup_reporter(d, config)
+            config['node'] = d.prompt("BitShares node to use",default=config['node'])
     d.clear()
     return config
 
