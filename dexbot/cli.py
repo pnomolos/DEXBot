@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import yaml
 import logging
+import os
+# we need to do this before importing click
+if not "LANG" in os.environ:
+    os.environ['LANG'] = 'C.UTF-8'
 import click
 import signal
 import os.path
