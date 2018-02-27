@@ -40,12 +40,14 @@ class BotInfrastructure(threading.Thread):
         bitshares_instance=None,
         view=None
     ):
+        """Initialise variables. But no bot setup, therefore fast"""
         super().__init__()
 
         # BitShares instance
         self.bitshares = bitshares_instance or shared_bitshares_instance()
         self.config = config
         self.view = view
+        self.jobs = set()
 
     def init_bots(self):
         """Do the actual initialisation of bots
@@ -130,6 +132,12 @@ class BotInfrastructure(threading.Thread):
             
     # Events
     def on_block(self, data):
+        if self.jobs:
+            try: 
+                for i in self.jobs:
+                    i ()
+            finally:
+                self.jobs = set()
         if self.reporter is not None:
             self.reporter.ontick()
         for botname, bot in self.config["bots"].items():
@@ -171,7 +179,7 @@ class BotInfrastructure(threading.Thread):
         self.init_bots()
         self.notify.listen()
 
-    def stop(self):
+    def stop(self,*args):
         self.notify.websocket.close()
 
     def remove_bot(self):
@@ -183,3 +191,17 @@ class BotInfrastructure(threading.Thread):
         # Initialize the base strategy to get control over the data
         strategy = BaseStrategy(config, bot_name)
         strategy.purge()
+
+    def report_now(self):
+        """Force-generate a report if we can"""
+        if self.reporter is not None:
+            self.reporter.run_report_week()
+        else:
+            log.warn("No reporter available")
+
+    def do_next_tick(self, job):
+        """Add a callable to be executed on the next tick"""
+        self.jobs.add(job)
+
+    def reread_config(self):
+        log.warn("reread_config not implemented yet")
